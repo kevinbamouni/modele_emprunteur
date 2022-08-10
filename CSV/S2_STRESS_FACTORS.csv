@@ -1,0 +1,12 @@
+numero_scenario;choc_mort_long;choc_incidence_ch;choc_incidence_inc;choc_retablissement_ch;choc_retablissement_inc;choc_passage_inc_inv;choc_rachat;choc_catastrophe;choc_frais_com
+1;0.5;0;0;0;0;0;0;0;0
+2;-0.5;0;0;0;0;0;0;0;0
+3;0;0.5;0;0;0;0;0;0;0
+4;0;0;0.5;0;0;0;0;0;0
+5;0;0;0;0.5;0;0;0;0;0
+6;0;0;0;0;0.5;0;0;0;0
+7;0;0;0;0;0;0.5;0;0;0
+8;0;0;0;0;0;0;0.5;0;0
+9;0;0;0;0;0;0;0;0.5;0
+10;0;0;0;0;0;0;0;0;0.25
+11;0;0;0;0;0;0;0;0;0

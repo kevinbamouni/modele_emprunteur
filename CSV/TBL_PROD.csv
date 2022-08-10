@@ -1,0 +1,5 @@
+produits;distribution_chanel;tx_prime_dc;tx_prime_inc;tx_prime_chomage;tx_frais_admin;tx_frais_acq;tx_comm;tx_profit_sharing_assureur;tx_profit_sharing_partenaire;tx_production_financiere;tx_frais_gest_sin
+A;Channel 1;0.0001;0;0;0.05;0.05;0.15;0.02;0.98;0.02;0.17
+B;Channel 1;0.0001;0.00015;0;0.05;0.05;0.15;0.02;0.98;0.02;0.17
+C;Channel 1;0.0001;0.00015;0.0002;0.05;0.05;0.15;0.02;0.98;0.02;0.17
+D;Channel 1;0.0001;0;0.0002;0.05;0.05;0.15;0.02;0.98;0.02;0.17

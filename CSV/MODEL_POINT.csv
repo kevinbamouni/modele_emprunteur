@@ -1,0 +1,7 @@
+mp_id;sexe;etat;age_actuel;age_souscription_annee;annee_souscription;anciennete_contrat_annee;anciennete_contrat_mois;duree_pret;age_fin;ci;crd;duree_restante;taux_nominal;taux_mensuel;mensualite;prime_dc;prime_inc_inv;prime_ch;produit;distribution_channel;nb_contrats;duree_sinistre
+1;H;v;34;23;2011;11;136;144;35;260000;16936;8;0,029;0,0024;2140;26;0;0;A;channel 1;10;0
+2;F;v;30;23;2015;7;88;180;38;810000;462195;92;0,032;0,0026;5672;81;0;0;A;channel 1;110;0
+6;F;v;51;50;2021;1;13;300;75;460000;448782;287;0,044;0,0036;2531;46;0;0;A;channel 1;60;0
+7;H;inc;64;44;2002;20;250;360;74;860000;371721;110;0,038;0,0031;4007;86;129;172;C;channel 1;60;7
+8;H;v;24;20;2018;4;52;60;25;760000;107804;8;0,029;0,0024;13622;76;114;0;B;channel 1;160;0
+10;F;ch;59;47;2010;12;145;336;75;560000;393023;191;0,041;0,0034;2805;56;0;112;D;channel 1;160;13
