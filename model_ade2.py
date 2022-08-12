@@ -7,22 +7,26 @@ Created on Mon Aug  8 14:26:37 2022
 
 import pandas as pd
 import numpy as np
+import functools
 
-class MemoizeClass:
+class FunctionMemoizer:
     """
-     Decorateur de Class pour implementation de Memoization : https://python-course.eu/advanced-python/memoization-decorators.php
+     Decorateur de Class pour implementation de Memoization :
+         https://python-course.eu/advanced-python/memoization-decorators.php
     """
     def __init__(self, fn):
         self.fn = fn
         self.memo = {}
-    def __call__(self, *args):
+
+    def __call__(self, *args, **kwargs):
         if args not in self.memo:
-            self.memo[args] = self.fn(*args)
+            self.memo[args] = self.fn(*args, **kwargs)
         return self.memo[args]
 
-def MemoizeFunction(f):
+def MemoizeFunction(fn):
     """
-    Decorateur de Fonction pour implementation de Memoization : https://python-course.eu/advanced-python/memoization-decorators.php
+    Decorateur de Fonction pour implementation de Memoization :
+        https://python-course.eu/advanced-python/memoization-decorators.php
 
     Parameters
     ----------
@@ -36,11 +40,33 @@ def MemoizeFunction(f):
 
     """
     memo = {}
-    def helper(x):
-        if x not in memo:
-            memo[x] = f(x)
-        return memo[x]
+    def helper(*args):
+        if args not in memo:
+            memo[args] = fn(*args)
+        return memo[args]
     return helper
+
+def caching(func):
+    """Keep a cache of previous function calls"""
+    @functools.wraps(func)
+    def wrapper_cache(*args, **kwargs):
+        cache_key = args + tuple(kwargs.items())
+        if cache_key not in wrapper_cache.cache:
+            wrapper_cache.cache[cache_key] = func(*args, **kwargs)
+        return wrapper_cache.cache[cache_key]
+    wrapper_cache.cache = dict()
+    return wrapper_cache
+
+class cachingc:
+    def __init__(self, fn):
+        self.fn = fn
+        self.cache = {}
+
+    def __call__(self, *args, **kwargs):
+        cache_key = args + tuple(kwargs.items())
+        if cache_key not in self.cache:
+            self.cache[cache_key] = self.fn(*args, **kwargs)
+        return self.cache[cache_key]
 
 class TblProd():
     def __init__(self, tblProduct) -> None:
@@ -83,47 +109,10 @@ class LoiMaintienChomage():
     def __init__(self, maintienCh) -> None:
         self.MaintienCh = maintienCh
 
-    # def nombre_maintien_chomage(self, age_entre, anciennete_chomage):
-    #     """
-
-    #     Parameters
-    #     ----------
-    #     age : int
-    #         age d'entrée en chômage.
-    #     anciennete_chomage : int
-    #         duration en état de chômage.
-
-    #     Returns
-    #     -------
-    #     TYPE
-    #         Nombre d'indiv en situation de chômage selon l'âge et la duration.
-
-    #     """
-    #     if(age_entre<=46):
-    #         if (anciennete_chomage<=34):
-    #             return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==age_entre,str(anciennete_chomage)]
-    #         else:
-    #             return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==age_entre,"35"]
-    #     else:
-    #         if (anciennete_chomage<=34):
-    #             return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==46,str(anciennete_chomage)]
-    #         else:
-    #             return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==46,"35"]
-
     def  nombre_maintien_chomage(self, age_entre, anciennete_chomage):
-        return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==age_entre,str(max(anciennete_chomage, self.MaintienCh.shape[1]-1))]
+        return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==age_entre, str(anciennete_chomage)]
 
-    # def prob_passage_ch_ch(self, age, anciennete_chomage):
-    #     if (anciennete_chomage < self.MaintienCh.shape[1]-1):
-    #         if (age<=65):
-    #           self.nombre_maintien_chomage(age, anciennete_chomage+1)/self.nombre_maintien_chomage(age, anciennete_chomage)
-    #         else:
-    #           self.nombre_maintien_chomage(65, anciennete_chomage+1)/self.nombre_maintien_chomage(65, anciennete_chomage)
-    #     else:
-    #         if(age<=65):
-    #             self.nombre_maintien_chomage(age, 35)/self.nombre_maintien_chomage(age, 34)
-    #         else:
-    #             self.nombre_maintien_chomage(65, 35)/self.nombre_maintien_chomage(65, 34)
+
     def prob_passage_ch_ch(self, age, anciennete_chomage):
         return self.nombre_maintien_chomage(age, anciennete_chomage+1)/self.nombre_maintien_chomage(age, anciennete_chomage)
 
@@ -134,32 +123,8 @@ class LoiMaintienIncapacite():
     def __init__(self, maintienIncap) -> None:
         self.MaintienIncap = maintienIncap
 
-    # def nombre_maintien_incap(self, age_entre, anciennete_incap):
-    #     if(age_entre<=46):
-    #         if (anciennete_incap<=34):
-    #             return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==age_entre,str(anciennete_incap)]
-    #         else:
-    #             return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==age_entre,"35"]
-    #     else:
-    #         if (anciennete_incap<=34):
-    #             return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==46,str(anciennete_incap)]
-    #         else:
-    #             return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==46,"35"]
-
     def nombre_maintien_incap(self, age_entre, anciennete_incap):
-        return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==age_entre,str(max(anciennete_incap, self.MaintienIncap.shape[1]-1))]
-
-    # def prob_passage_inc_inc(self, age, anciennete_inc):
-    #     if (anciennete_inc < self.MaintienIncap.shape[1]-1):
-    #         if (age<=65):
-    #           self.nombre_maintien_incap(age, anciennete_inc+1)/self.nombre_maintien_incap(age, anciennete_inc)
-    #         else:
-    #           self.nombre_maintien_incap(65, anciennete_inc+1)/self.nombre_maintien_incap(65, anciennete_inc)
-    #     else:
-    #         if(age<=65):
-    #             self.nombre_maintien_incap(age, 35)/self.nombre_maintien_incap(age, 34)
-    #         else:
-    #             self.nombre_maintien_incap(65, 35)/self.nombre_maintien_incap(65, 34)
+        return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==age_entre,str(anciennete_incap)]
 
     def prob_passage_inc_inc(self, age, anciennete_inc):
         return self.nombre_maintien_incap(age, anciennete_inc+1)/self.nombre_maintien_incap(age, anciennete_inc)
@@ -172,23 +137,7 @@ class LoiPasssageInvalidite():
         self.PassageInval = passageInval
 
     def nombre_passage_inval(self, age_entree, anciennete_incap):
-        return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==age_entree,str(max(anciennete_incap, self.PassageInval.shape[1]-1))]
-
-    # def nombre_passage_inval(self, age_entree, anciennete_incap):
-    #     if (age_entree<=43):
-    #         if (anciennete_incap<=34):
-    #             return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==age_entree,str(anciennete_incap+1)]
-    #         else:
-    #             return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==age_entree,"35"]
-    #     else:
-    #         if (anciennete_incap<=34):
-    #             return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==43,str(anciennete_incap)]
-    #         else:
-    #             return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==43,"35"]
-
-    def prob_passage_inc_inv(self, age, anciennete_inc):
-        return (self.nombre_passage_inval(age, anciennete_inc+1) - self.nombre_passage_inval(age, anciennete_inc))/self.nombre_passage_inval(age, anciennete_inc)
-
+        return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==age_entree,str(anciennete_incap)]
 
 class LoiIncidence():
     def __init__(self, incidence) -> None:
@@ -204,7 +153,7 @@ class LoiIncidence():
             return self.Incidence.loc[ADEFlux.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_incap"]
 
     def prob_entree_chomage(self, age_actuel):
-        if age_actuel<self.max_age_incidence():
+        if age_actuel < self.max_age_incidence():
             return self.Incidence.loc[ADEFlux.Incidence["age_x"]==age_actuel, "Incidence_en_chomage"]
         else:
             return self.Incidence.loc[ADEFlux.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_chomage"]
@@ -284,12 +233,12 @@ class ADEFlux():
     Lapse = LoiRachat(LapseData)
     MaintienCh = LoiMaintienChomage(MaintienChData)
     MaintienIncap = LoiMaintienIncapacite(MaintienIncapData)
-    Mortalite = LoiMortalite(MortaliteTHData)
+    Mortalite = LoiMortalite(MortaliteTHData, MortaliteTFData)
     PassageInval = LoiPasssageInvalidite(PassageInvalData)
     ReferentielProduit = TblProd(referentielProduit)
 
     def mp_id(self):
-        return self.ModelPointRow['mp_id']
+        return self.ModelPointRow.mp_id
 
     def sexe(self):
         return self.ModelPointRow.sexe
@@ -297,7 +246,7 @@ class ADEFlux():
     def etat(self):
         return self.ModelPointRow.etat
 
-    def age_actuel(self,t):
+    def age_actuel(self, t):
         return self.ModelPointRow.age_actuel + t/12
 
     def age_souscription_annee(self):
@@ -324,11 +273,9 @@ class ADEFlux():
     def crd(self):
         return self.ModelPointRow.crd
 
+    @cachingc
     def duree_restante(self,t):
-        if t==0:
-            return self.ModelPointRow.duree_restante
-        else:
-            return self.ModelPointRow.duree_restante - t
+        return self.ModelPointRow.duree_restante - t
 
     def taux_nominal(self):
         return self.ModelPointRow.taux_nominal
@@ -358,29 +305,83 @@ class ADEFlux():
         return self.ModelPointRow.nb_contrats
 
     def duree_sinistre(self,t):
-        return self.ModelPointRow.duree_sinistre+t
+        return self.ModelPointRow.duree_sinistre + t
 
+    def prob_passage_inc_inv(self, age, anciennete_inc):
+        return self.PassageInval.nombre_passage_inval(age, anciennete_inc)/self.MaintienIncap.nombre_maintien_incap(age, anciennete_inc)
+
+    @functools.lru_cache
+    def fibonacci(self, num):
+        if num < 2:
+            return num
+        return self.fibonacci(num - 1) + self.fibonacci(num - 2)
+
+    @functools.lru_cache
+    def nombre_de_v(self, t):
+        if t ==0:
+            return lambda: self.nb_contrats if self.etat() == 'v' else 0
+        else:
+            return self.nombre_de_v(t-1) - self.nombre_de_ch(t-1) - self.nombre_de_inv(t-1) - self.nombre_de_inc(t-1) - self.nombre_de_dc(t-1) - self.nombre_de_lps(t-1)
+
+    @functools.lru_cache
+    def nombre_de_ch(self, t):
+        if t ==0:
+            return lambda: self.nb_contrats if self.etat() == 'ch' else 0
+        else:
+            return self.nombre_de_v(t-1) * self.Incidence.prob_entree_chomage(self.age_actuel(t)) + self.MaintienCh.prob_passage_ch_ch(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_ch(t-1)
+
+    @functools.lru_cache
+    def nombre_de_inv(self, t):
+        if t == 0:
+            return lambda: self.nb_contrats if self.etat() == 'inv' else 0
+        else:
+            return self.nombre_de_inv(t-1) + self.prob_passage_inc_inv(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_inc(t-1) + self.Incidence.prob_entree_inval(self.age_actuel(t)) * self.nombre_de_v(t-1)
+
+    @functools.lru_cache
+    def nombre_de_inc(self, t):
+        if t == 0:
+            return lambda: self.nb_contrats if self.etat() == 'inc' else 0
+        else:
+            return self.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) * self.effectifs_par_etat( t-1)["inc"] + self.Incidence.prob_entree_incap(self.age_actuel(t)) / 12 * self.effectifs_par_etat( t-1)["v"]
+
+    @functools.lru_cache
+    def nombre_de_dc(self, t):
+        if t == 0:
+            return 0
+        else:
+            return self.nombre_de_dc(t-1) + self.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) / 12 * (self.nombre_de_inc(t-1) + self.nombre_de_inv(t-1) + self.nombre_de_ch( t-1) + self.nombre_de_v(t-1))
+
+    @functools.lru_cache
+    def nombre_de_lps(self, t):
+        if t == 0:
+            return 0
+        else:
+            return self.nombre_de_lps(t-1) + self.Lapse.prob_rachat(self.produit(), self.anciennete_contrat_mois(t)) * self.nombre_de_v(t-1)
+
+    @functools.lru_cache
     def effectifs_par_etat(self, t):
         if t==0:
-            return pd.DataFrame({'v': [lambda: self.nb_contrats if self.etat() == 'v' else 0],
-                                 'ch': [lambda: self.nb_contrats if self.etat() == 'ch' else 0],
-                                 'inv': [lambda: self.nb_contrats if self.etat() == 'inv' else 0],
-                                 'inc': [lambda: self.nb_contrats if self.etat() == 'inc' else 0],
-                                 'dc': [0],
-                                 'lps': [0]
-                                 })
+            df = pd.DataFrame({})
+            df["v"] = [lambda: self.nb_contrats if self.etat() == 'v' else 0]
+            df["ch"] = [lambda: self.nb_contrats if self.etat() == 'ch' else 0]
+            df["inv"] = [lambda: self.nb_contrats if self.etat() == 'inv' else 0]
+            df["inc"] = [lambda: self.nb_contrats if self.etat() == 'inc' else 0]
+            df["dc"] = [0]
+            df["lps"] = [0]
+            return df
         else:
-            pd.DataFrame({'v': [lambda: self.nb_contrats if self.etat() == 'v' else 0],
-                          'ch': [lambda: self.nb_contrats if self.etat() == 'ch' else 0],
-                          'inv': [lambda: self.nb_contrats if self.etat() == 'inv' else 0],
-                          'inc': [lambda: self.nb_contrats if self.etat() == 'inc' else 0],
-                          'dc': self.Mortalite.prob_dc(self.sexe(), self.age_actuel(t))
-                          * (self.effectifs_par_etat(t-1)["inc"]
-                             + self.effectifs_par_etat(t-1)["inv"]
-                             + self.effectifs_par_etat(t-1)["ch"]),
-                          'lps': [0]
-                          })
-            self.effectifs_par_etat(t-1)
+            df["ch"] = self.effectifs_par_etat(t-1)["v"] * self.Incidence.prob_entree_chomage(self.age_actuel(t)) + self.MaintienCh.prob_passage_ch_ch(self.age_actuel(t), self.duree_sinistre(t)) * self.effectifs_par_etat(t-1)["ch"]
+            df["inv"] = self.effectifs_par_etat( t-1)["inv"] + self.prob_passage_inc_inv(self.age_actuel(t), self.duree_sinistre(t)) * self.effectifs_par_etat( t-1)["inc"] + self.Incidence.prob_entree_inval(self.age_actuel(t)) * self.effectifs_par_etat( t-1)["v"]
+
+            df["inc"] = self.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) * self.effectifs_par_etat( t-1)["inc"] + self.Incidence.prob_entree_incap(self.age_actuel(t)) / 12 * self.effectifs_par_etat( t-1)["v"]
+
+            df["dc"] = self.effectifs_par_etat( t-1)["dc"] + self.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) / 12 * (self.effectifs_par_etat( t-1)["inc"]
+                                                                                        + self.effectifs_par_etat( t-1)["inv"]
+                                                                                        + self.effectifs_par_etat( t-1)["ch"]
+                                                                                        + self.effectifs_par_etat( t-1)["v"])
+
+            df["lps"] = self.effectifs_par_etat( t-1)["lps"] + self.Lapse.prob_rachat(self.produit(), self.anciennete_contrat_mois(t)) * self.effectifs_par_etat(self, t-1)["v"]
+            df['v'] = self.effectifs_par_etat(self, t-1)["v"] - df['lps'] - df['dc'] - df['inc'] - df['inv'] - df['ch']
 
     def pmxcho(self, age_entre, dure_ecoulee, D1, D2, taux_actu):
         som1 = 0
