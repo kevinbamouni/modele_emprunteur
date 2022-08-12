@@ -8,6 +8,7 @@ Created on Mon Aug  8 14:26:37 2022
 import pandas as pd
 import numpy as np
 import functools
+import math
 
 class FunctionMemoizer:
     """
@@ -109,9 +110,11 @@ class LoiMaintienChomage():
     def __init__(self, maintienCh) -> None:
         self.MaintienCh = maintienCh
 
-    def  nombre_maintien_chomage(self, age_entre, anciennete_chomage):
-        return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==age_entre, str(anciennete_chomage)]
-
+    def  nombre_maintien_chomage(self, age_entree, anciennete_chomage):
+        try:
+            return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(anciennete_chomage)]
+        except KeyError:
+            return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(self.MaintienCh.shape[1]-2)]
 
     def prob_passage_ch_ch(self, age, anciennete_chomage):
         return self.nombre_maintien_chomage(age, anciennete_chomage+1)/self.nombre_maintien_chomage(age, anciennete_chomage)
@@ -123,8 +126,11 @@ class LoiMaintienIncapacite():
     def __init__(self, maintienIncap) -> None:
         self.MaintienIncap = maintienIncap
 
-    def nombre_maintien_incap(self, age_entre, anciennete_incap):
-        return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==age_entre,str(anciennete_incap)]
+    def nombre_maintien_incap(self, age_entree, anciennete_incap):
+        try:
+            return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(anciennete_incap)]
+        except KeyError:
+            return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(self.MaintienIncap.shape[1]-2)]
 
     def prob_passage_inc_inc(self, age, anciennete_inc):
         return self.nombre_maintien_incap(age, anciennete_inc+1)/self.nombre_maintien_incap(age, anciennete_inc)
@@ -137,7 +143,10 @@ class LoiPasssageInvalidite():
         self.PassageInval = passageInval
 
     def nombre_passage_inval(self, age_entree, anciennete_incap):
-        return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==age_entree,str(anciennete_incap)]
+        try:
+            return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==math.floor(age_entree),str(anciennete_incap)]
+        except KeyError:
+            return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==math.floor(age_entree),str(self.PassageInval.shape[1]-2)]
 
 class LoiIncidence():
     def __init__(self, incidence) -> None:
@@ -148,21 +157,21 @@ class LoiIncidence():
 
     def prob_entree_incap(self, age_actuel):
         if age_actuel<self.max_age_incidence():
-            return self.Incidence.loc[ADEFlux.Incidence["age_x"]==age_actuel, "Incidence_en_incap"]
+            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_incap"]
         else:
-            return self.Incidence.loc[ADEFlux.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_incap"]
+            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_incap"]
 
     def prob_entree_chomage(self, age_actuel):
         if age_actuel < self.max_age_incidence():
-            return self.Incidence.loc[ADEFlux.Incidence["age_x"]==age_actuel, "Incidence_en_chomage"]
+            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_chomage"]
         else:
-            return self.Incidence.loc[ADEFlux.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_chomage"]
+            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_chomage"]
 
     def prob_entree_inval(self, age_actuel):
         if age_actuel<self.max_age_incidence():
-            return self.Incidence.loc[ADEFlux.Incidence["age_x"]==age_actuel, "Incidence_en_inval"]
+            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_inval"]
         else:
-            return self.Incidence.loc[ADEFlux.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_inval"]
+            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_inval"]
 
 class LoiMortalite():
     def __init__(self, mortaliteTH, mortaliteTF) -> None:
@@ -180,19 +189,22 @@ class LoiMortalite():
             if age_actuel>=self.max_age_mortality_tf():
                 return self.MortaliteTF.loc[self.MortaliteTF["age_x"]==self.max_age_mortality_tf(), "Qx"]
             else :
-                return self.MortaliteTF.loc[self.MortaliteTF["age_x"]==age_actuel, "Qx"]
+                return self.MortaliteTF.loc[self.MortaliteTF["age_x"]==math.floor(age_actuel), "Qx"]
         else:
             if age_actuel>=self.max_age_mortality_th():
                 return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==self.max_age_mortality_th(), "Qx"]
             else :
-                return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==age_actuel, "Qx"]
+                return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==math.floor(age_actuel), "Qx"]
 
 class LoiRachat():
     def __init__(self, lapse) -> None:
         self.Lapse = lapse
 
     def prob_rachat(self, produit, anciennete_contrat_mois):
-        return self.Lapse.loc[self.Lapse["produit"]==produit, str(anciennete_contrat_mois)]
+        try:
+            return self.Lapse.loc[self.Lapse["produit"]==produit, str(anciennete_contrat_mois)]
+        except KeyError:
+            return self.Lapse.loc[self.Lapse["produit"]==produit, str(self.Lapse.shape[1]-2)]
 
 class ADEFlux():
     """_summary_
@@ -310,7 +322,7 @@ class ADEFlux():
     def prob_passage_inc_inv(self, age, anciennete_inc):
         return self.PassageInval.nombre_passage_inval(age, anciennete_inc)/self.MaintienIncap.nombre_maintien_incap(age, anciennete_inc)
 
-    @functools.lru_cache
+    @cachingc
     def fibonacci(self, num):
         if num < 2:
             return num
@@ -319,44 +331,46 @@ class ADEFlux():
     @functools.lru_cache
     def nombre_de_v(self, t):
         if t ==0:
-            return lambda: self.nb_contrats if self.etat() == 'v' else 0
+            return self.nb_contrats() if self.etat() == 'v' else 0
         else:
-            return self.nombre_de_v(t-1) - self.nombre_de_ch(t-1) - self.nombre_de_inv(t-1) - self.nombre_de_inc(t-1) - self.nombre_de_dc(t-1) - self.nombre_de_lps(t-1)
+            proba_v_v = 1 - ADEFlux.Lapse.prob_rachat(self.produit(), self.anciennete_contrat_mois(t)) - ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) - ADEFlux.Incidence.prob_entree_chomage(self.age_actuel(t)) - ADEFlux.Incidence.prob_entree_incap(self.age_actuel(t))
+            proba_inc_v = 1 - ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) - ADEFlux.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) - self.prob_passage_inc_inv(self.age_actuel(t), self.duree_sinistre(t))
+            proba_ch_v = 1 - ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) - ADEFlux.MaintienCh.nombre_maintien_chomage(self.age_actuel(t), self.duree_sinistre(t))
+            return 10 #self.nombre_de_v(t-1) * proba_v_v # + self.nombre_de_inc(t-1) * proba_inc_v + self.nombre_de_ch(t-1) * proba_ch_v
 
     @functools.lru_cache
     def nombre_de_ch(self, t):
         if t ==0:
-            return lambda: self.nb_contrats if self.etat() == 'ch' else 0
+            return self.nb_contrats() if self.etat() == 'ch' else 0
         else:
-            return self.nombre_de_v(t-1) * self.Incidence.prob_entree_chomage(self.age_actuel(t)) + self.MaintienCh.prob_passage_ch_ch(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_ch(t-1)
+            return self.nombre_de_v(t-1) * ADEFlux.Incidence.prob_entree_chomage(self.age_actuel(t)) + ADEFlux.MaintienCh.prob_passage_ch_ch(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_ch(t-1)
 
     @functools.lru_cache
     def nombre_de_inv(self, t):
         if t == 0:
-            return lambda: self.nb_contrats if self.etat() == 'inv' else 0
+            return self.nb_contrats() if self.etat() == 'inv' else 0
         else:
-            return self.nombre_de_inv(t-1) + self.prob_passage_inc_inv(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_inc(t-1) + self.Incidence.prob_entree_inval(self.age_actuel(t)) * self.nombre_de_v(t-1)
+            return self.nombre_de_inv(t-1) + self.prob_passage_inc_inv(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_inc(t-1) + ADEFlux.Incidence.prob_entree_inval(self.age_actuel(t)) * self.nombre_de_v(t-1)
 
     @functools.lru_cache
     def nombre_de_inc(self, t):
         if t == 0:
-            return lambda: self.nb_contrats if self.etat() == 'inc' else 0
+            return self.nb_contrats() if self.etat() == 'inc' else 0
         else:
-            return self.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) * self.effectifs_par_etat( t-1)["inc"] + self.Incidence.prob_entree_incap(self.age_actuel(t)) / 12 * self.effectifs_par_etat( t-1)["v"]
+            return ADEFlux.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_inc(t-1) + ADEFlux.Incidence.prob_entree_incap(self.age_actuel(t)) / 12 * self.nombre_de_v(t-1)
 
     @functools.lru_cache
     def nombre_de_dc(self, t):
         if t == 0:
             return 0
         else:
-            return self.nombre_de_dc(t-1) + self.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) / 12 * (self.nombre_de_inc(t-1) + self.nombre_de_inv(t-1) + self.nombre_de_ch( t-1) + self.nombre_de_v(t-1))
+            return self.nombre_de_dc(t-1) + ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) / 12 * (self.nombre_de_inc(t-1) + self.nombre_de_inv(t-1) + self.nombre_de_ch( t-1) + self.nombre_de_v(t-1))
 
     @functools.lru_cache
     def nombre_de_lps(self, t):
         if t == 0:
             return 0
-        else:
-            return self.nombre_de_lps(t-1) + self.Lapse.prob_rachat(self.produit(), self.anciennete_contrat_mois(t)) * self.nombre_de_v(t-1)
+        return self.nombre_de_lps(t-1) + ADEFlux.Lapse.prob_rachat(self.produit(), self.anciennete_contrat_mois(t)) * self.nombre_de_v(t-1)
 
     @functools.lru_cache
     def effectifs_par_etat(self, t):
@@ -405,7 +419,7 @@ class ADEFlux():
         l = ADEFlux.MaintienIncap.nombre_maintien_incap(agentree, durecoulee)
         prov = crd
         for i in range(D1,D2):
-            som1 = som1 + ((1 + taux) ^ -(i / 12))* ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i) * prov
+            som1 = som1 + ((1 + taux) ^ -(i / 12)) * ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i) * prov
             som2 = som2 + ((1 + taux) ^ -((i + 1) / 12)) * ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i + 1) * prov
         return ((som1 + som2) / (2 * l))
 
@@ -420,5 +434,5 @@ class ADEFlux():
 
 #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
 ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
-projection = ADEFlux(ModelPoint.loc[[0]])
+projection = ADEFlux(ModelPoint.loc[0,:])
 projection.produit()
