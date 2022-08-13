@@ -74,34 +74,34 @@ class TblProd():
         self.TblProduct = tblProduct
 
     def get_tx_prime_dc(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_prime_dc"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_prime_dc"].values[0]
 
     def get_tx_prime_inc(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_prime_inc"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_prime_inc"].values[0]
 
     def get_tx_prime_chomage(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_prime_chomage"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_prime_chomage"].values[0]
 
     def get_tx_frais_admin(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_frais_admin"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_frais_admin"].values[0]
 
     def get_tx_frais_acq(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_frais_acq"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_frais_acq"].values[0]
 
     def get_tx_comm(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_comm"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_comm"].values[0]
 
     def get_tx_profit_sharing_assureur(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_profit_sharing_assureur"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_profit_sharing_assureur"].values[0]
 
     def get_tx_profit_sharing_partenaire(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_profit_sharing_partenaire"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_profit_sharing_partenaire"].values[0]
 
     def get_tx_production_financiere(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_production_financiere"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_production_financiere"].values[0]
 
     def get_tx_frais_gest_sin(self, productCode):
-        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_frais_gest_sin"]
+        return self.TblProduct[self.TblProduct["produits"]==productCode,"tx_frais_gest_sin"].values[0]
 
 class LoiMaintienChomage():
     """
@@ -112,9 +112,9 @@ class LoiMaintienChomage():
 
     def  nombre_maintien_chomage(self, age_entree, anciennete_chomage):
         try:
-            return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(anciennete_chomage)]
+            return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(anciennete_chomage)].values[0]
         except KeyError:
-            return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(self.MaintienCh.shape[1]-2)]
+            return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(self.MaintienCh.shape[1]-2)].values[0]
 
     def prob_passage_ch_ch(self, age, anciennete_chomage):
         return self.nombre_maintien_chomage(age, anciennete_chomage+1)/self.nombre_maintien_chomage(age, anciennete_chomage)
@@ -128,9 +128,9 @@ class LoiMaintienIncapacite():
 
     def nombre_maintien_incap(self, age_entree, anciennete_incap):
         try:
-            return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(anciennete_incap)]
+            return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(anciennete_incap)].values[0]
         except KeyError:
-            return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(self.MaintienIncap.shape[1]-2)]
+            return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(self.MaintienIncap.shape[1]-2)].values[0]
 
     def prob_passage_inc_inc(self, age, anciennete_inc):
         return self.nombre_maintien_incap(age, anciennete_inc+1)/self.nombre_maintien_incap(age, anciennete_inc)
@@ -144,9 +144,9 @@ class LoiPasssageInvalidite():
 
     def nombre_passage_inval(self, age_entree, anciennete_incap):
         try:
-            return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==math.floor(age_entree),str(anciennete_incap)]
+            return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==math.floor(age_entree),str(anciennete_incap)].values[0]
         except KeyError:
-            return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==math.floor(age_entree),str(self.PassageInval.shape[1]-2)]
+            return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==math.floor(age_entree),str(self.PassageInval.shape[1]-2)].values[0]
 
 class LoiIncidence():
     def __init__(self, incidence) -> None:
@@ -157,21 +157,21 @@ class LoiIncidence():
 
     def prob_entree_incap(self, age_actuel):
         if age_actuel<self.max_age_incidence():
-            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_incap"]
+            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_incap"].values[0]
         else:
-            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_incap"]
+            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_incap"].values[0]
 
     def prob_entree_chomage(self, age_actuel):
         if age_actuel < self.max_age_incidence():
-            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_chomage"]
+            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_chomage"].values[0]
         else:
-            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_chomage"]
+            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_chomage"].values[0]
 
     def prob_entree_inval(self, age_actuel):
         if age_actuel<self.max_age_incidence():
-            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_inval"]
+            return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_inval"].values[0]
         else:
-            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_inval"]
+            return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_inval"].values[0]
 
 class LoiMortalite():
     def __init__(self, mortaliteTH, mortaliteTF) -> None:
@@ -187,14 +187,14 @@ class LoiMortalite():
     def prob_dc(self, sexe, age_actuel):
         if sexe=='F':
             if age_actuel>=self.max_age_mortality_tf():
-                return self.MortaliteTF.loc[self.MortaliteTF["age_x"]==self.max_age_mortality_tf(), "Qx"]
+                return self.MortaliteTF.loc[self.MortaliteTF["age_x"]==self.max_age_mortality_tf(), "Qx"].values[0]
             else :
-                return self.MortaliteTF.loc[self.MortaliteTF["age_x"]==math.floor(age_actuel), "Qx"]
+                return self.MortaliteTF.loc[self.MortaliteTF["age_x"]==math.floor(age_actuel), "Qx"].values[0]
         else:
             if age_actuel>=self.max_age_mortality_th():
-                return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==self.max_age_mortality_th(), "Qx"]
+                return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==self.max_age_mortality_th(), "Qx"].values[0]
             else :
-                return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==math.floor(age_actuel), "Qx"]
+                return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==math.floor(age_actuel), "Qx"].values[0]
 
 class LoiRachat():
     def __init__(self, lapse) -> None:
@@ -202,9 +202,9 @@ class LoiRachat():
 
     def prob_rachat(self, produit, anciennete_contrat_mois):
         try:
-            return self.Lapse.loc[self.Lapse["produit"]==produit, str(anciennete_contrat_mois)]
+            return self.Lapse.loc[self.Lapse["produit"]==produit, str(anciennete_contrat_mois)].values[0]
         except KeyError:
-            return self.Lapse.loc[self.Lapse["produit"]==produit, str(self.Lapse.shape[1]-2)]
+            return self.Lapse.loc[self.Lapse["produit"]==produit, str(self.Lapse.shape[1]-2)].values[0]
 
 class ADEFlux():
     """_summary_
@@ -280,9 +280,19 @@ class ADEFlux():
         return self.ModelPointRow.age_fin
 
     def ci(self):
+        """
+            retourne le Capital Initial du prêt
+        Returns:
+            float: Capital initial du prêt
+        """
         return self.ModelPointRow.ci
 
-    def crd(self):
+    def crd(self, t):
+        """
+            retourne le Credit Restant dû
+        Returns:
+            float: montant du capital restant dû
+        """
         return self.ModelPointRow.crd
 
     @cachingc
@@ -357,7 +367,7 @@ class ADEFlux():
         if t == 0:
             return self.nb_contrats() if self.etat() == 'inc' else 0
         else:
-            return ADEFlux.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_inc(t-1) + ADEFlux.Incidence.prob_entree_incap(self.age_actuel(t)) / 12 * self.nombre_de_v(t-1)
+            return ADEFlux.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_inc(t-1) + (ADEFlux.Incidence.prob_entree_incap(self.age_actuel(t)) / 12) * self.nombre_de_v(t-1)
 
     @functools.lru_cache
     def nombre_de_dc(self, t):
@@ -424,6 +434,17 @@ class ADEFlux():
         return ((som1 + som2) / (2 * l))
 
     def amortisation_schedule(amount, annualinterestrate, paymentsperyear, years):
+        """_summary_
+            Tableau d'amortissement du prêt
+        Args:
+            amount (float): Montant du prêt
+            annualinterestrate (float): taux d'interet annuel
+            paymentsperyear (float): Nombre de paiment dans l'année
+            years (int): nombre d'années du prêt
+
+        Returns:
+            Pandas DataFrame: Tableau d'amortissement
+        """
         df = pd.DataFrame({'PrincipalPaid' :[np.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(paymentsperyear*years)],
                            'InterestPaid' :[np.ipmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(paymentsperyear*years)]})
         df['Instalment'] = df.PrincipalPaid + df.InterestPaid
