@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import functools
 import math
+import numpy_financial as npf
 
 class FunctionMemoizer:
     """
@@ -293,7 +294,8 @@ class ADEFlux():
         Returns:
             float: montant du capital restant dû
         """
-        return self.ModelPointRow.crd
+        crd = self.loan_balance_at_n(self.ci(), self.taux_nominal(), 12, self.duree_pret()/12, self.duree_pret()-self.duree_restante+t)
+        return crd
 
     @cachingc
     def duree_restante(self,t):
@@ -382,31 +384,6 @@ class ADEFlux():
             return 0
         return self.nombre_de_lps(t-1) + ADEFlux.Lapse.prob_rachat(self.produit(), self.anciennete_contrat_mois(t)) * self.nombre_de_v(t-1)
 
-    @functools.lru_cache
-    def effectifs_par_etat(self, t):
-        if t==0:
-            df = pd.DataFrame({})
-            df["v"] = [lambda: self.nb_contrats if self.etat() == 'v' else 0]
-            df["ch"] = [lambda: self.nb_contrats if self.etat() == 'ch' else 0]
-            df["inv"] = [lambda: self.nb_contrats if self.etat() == 'inv' else 0]
-            df["inc"] = [lambda: self.nb_contrats if self.etat() == 'inc' else 0]
-            df["dc"] = [0]
-            df["lps"] = [0]
-            return df
-        else:
-            df["ch"] = self.effectifs_par_etat(t-1)["v"] * self.Incidence.prob_entree_chomage(self.age_actuel(t)) + self.MaintienCh.prob_passage_ch_ch(self.age_actuel(t), self.duree_sinistre(t)) * self.effectifs_par_etat(t-1)["ch"]
-            df["inv"] = self.effectifs_par_etat( t-1)["inv"] + self.prob_passage_inc_inv(self.age_actuel(t), self.duree_sinistre(t)) * self.effectifs_par_etat( t-1)["inc"] + self.Incidence.prob_entree_inval(self.age_actuel(t)) * self.effectifs_par_etat( t-1)["v"]
-
-            df["inc"] = self.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) * self.effectifs_par_etat( t-1)["inc"] + self.Incidence.prob_entree_incap(self.age_actuel(t)) / 12 * self.effectifs_par_etat( t-1)["v"]
-
-            df["dc"] = self.effectifs_par_etat( t-1)["dc"] + self.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) / 12 * (self.effectifs_par_etat( t-1)["inc"]
-                                                                                        + self.effectifs_par_etat( t-1)["inv"]
-                                                                                        + self.effectifs_par_etat( t-1)["ch"]
-                                                                                        + self.effectifs_par_etat( t-1)["v"])
-
-            df["lps"] = self.effectifs_par_etat( t-1)["lps"] + self.Lapse.prob_rachat(self.produit(), self.anciennete_contrat_mois(t)) * self.effectifs_par_etat(self, t-1)["v"]
-            df['v'] = self.effectifs_par_etat(self, t-1)["v"] - df['lps'] - df['dc'] - df['inc'] - df['inv'] - df['ch']
-
     def pmxcho(self, age_entre, dure_ecoulee, D1, D2, taux_actu):
         som1 = 0
         som2 = 0
@@ -433,7 +410,7 @@ class ADEFlux():
             som2 = som2 + ((1 + taux) ^ -((i + 1) / 12)) * ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i + 1) * prov
         return ((som1 + som2) / (2 * l))
 
-    def amortisation_schedule(amount, annualinterestrate, paymentsperyear, years):
+    def amortisation_schedule(self, amount, annualinterestrate, paymentsperyear, years):
         """_summary_
             Tableau d'amortissement du prêt
         Args:
@@ -445,13 +422,18 @@ class ADEFlux():
         Returns:
             Pandas DataFrame: Tableau d'amortissement
         """
-        df = pd.DataFrame({'PrincipalPaid' :[np.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(paymentsperyear*years)],
-                           'InterestPaid' :[np.ipmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(paymentsperyear*years)]})
+        df = pd.DataFrame({'PrincipalPaid' :[npf.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(paymentsperyear*years)],
+                           'InterestPaid' :[npf.ipmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(paymentsperyear*years)]})
         df['Instalment'] = df.PrincipalPaid + df.InterestPaid
         df['CumulativePrincipal'] = np.cumsum(df.PrincipalPaid)
         df['Principal'] = amount
         df['Balance'] = df['Principal'] + df['CumulativePrincipal']
+        df['Mois'] = np.arange(1, df.shape[1]+1, 1)
         return (df)
+    
+    def loan_balance_at_n(self, amount, annualinterestrate, paymentsperyear, years, n):
+        principalpaid = [npf.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(n)]
+        return amount+np.sum(principalpaid)
 
 #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
 ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
