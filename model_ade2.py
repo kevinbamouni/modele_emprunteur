@@ -259,6 +259,7 @@ class ADEFlux():
     def etat(self):
         return self.ModelPointRow.etat
 
+    @functools.lru_cache
     def age_actuel(self, t):
         return self.ModelPointRow.age_actuel + t/12
 
@@ -268,9 +269,11 @@ class ADEFlux():
     def annee_souscription(self):
         return self.ModelPointRow.annee_souscription
 
+    @functools.lru_cache
     def anciennete_contrat_annee(self,t):
         return self.ModelPointRow.anciennete_contrat_annee + t/12
 
+    @functools.lru_cache
     def anciennete_contrat_mois(self,t):
         return self.ModelPointRow.anciennete_contrat_mois + t
 
@@ -328,13 +331,15 @@ class ADEFlux():
     def nb_contrats(self):
         return self.ModelPointRow.nb_contrats
 
+    @functools.lru_cache
     def duree_sinistre(self,t):
         return self.ModelPointRow.duree_sinistre + t
 
-    def prob_passage_inc_inv(self, age, anciennete_inc):
-        return self.PassageInval.nombre_passage_inval(age, anciennete_inc)/self.MaintienIncap.nombre_maintien_incap(age, anciennete_inc)
+    @functools.lru_cache
+    def prob_passage_inc_inv(self, t):
+        return self.PassageInval.nombre_passage_inval(self.age_actuel(t), self.duree_sinistre(t))/self.MaintienIncap.nombre_maintien_incap(self.age_actuel(t), self.duree_sinistre(t))
 
-    @cachingc
+    @functools.lru_cache
     def fibonacci(self, num):
         if num < 2:
             return num
@@ -346,7 +351,7 @@ class ADEFlux():
             return self.nb_contrats() if self.etat() == 'v' else 0
         else:
             proba_v_v = 1 - ADEFlux.Lapse.prob_rachat(self.produit(), self.anciennete_contrat_mois(t)) - ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) - ADEFlux.Incidence.prob_entree_chomage(self.age_actuel(t)) - ADEFlux.Incidence.prob_entree_incap(self.age_actuel(t))
-            proba_inc_v = 1 - ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) - ADEFlux.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) - self.prob_passage_inc_inv(self.age_actuel(t), self.duree_sinistre(t))
+            proba_inc_v = 1 - ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) - ADEFlux.MaintienIncap.prob_passage_inc_inc(self.age_actuel(t), self.duree_sinistre(t)) - self.prob_passage_inc_inv(t)
             proba_ch_v = 1 - ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t)) - ADEFlux.MaintienCh.nombre_maintien_chomage(self.age_actuel(t), self.duree_sinistre(t))
             return 10 #self.nombre_de_v(t-1) * proba_v_v # + self.nombre_de_inc(t-1) * proba_inc_v + self.nombre_de_ch(t-1) * proba_ch_v
 
@@ -362,7 +367,7 @@ class ADEFlux():
         if t == 0:
             return self.nb_contrats() if self.etat() == 'inv' else 0
         else:
-            return self.nombre_de_inv(t-1) + self.prob_passage_inc_inv(self.age_actuel(t), self.duree_sinistre(t)) * self.nombre_de_inc(t-1) + ADEFlux.Incidence.prob_entree_inval(self.age_actuel(t)) * self.nombre_de_v(t-1)
+            return self.nombre_de_inv(t-1) + self.prob_passage_inc_inv(t) * self.nombre_de_inc(t-1) + ADEFlux.Incidence.prob_entree_inval(self.age_actuel(t)) * self.nombre_de_v(t-1)
 
     @functools.lru_cache
     def nombre_de_inc(self, t):
@@ -435,6 +440,34 @@ class ADEFlux():
         principalpaid = [npf.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(n)]
         return amount+np.sum(principalpaid)
 
+    def results(self):
+        ultim = self.duree_restante(0)
+        df = pd.DataFrame({'mp_id':[self.mp_id()],
+                           'sexe':[self.sexe()],
+                           'etat':[self.etat()],
+                           'age_actuel':[self.age_actuel()],
+                           'age_souscription_annee':[self.age_souscription_annee(t) for t in range(ultim)],
+                           'annee_souscription':[self.annee_souscription()],
+                           'anciennete_contrat_annee':[self.anciennete_contrat_annee(t) for t in range(ultim)],
+                           'anciennete_contrat_mois':[self.anciennete_contrat_mois(t) for t in range(ultim)],
+                           'duree_pret':[self.duree_pret()],
+                           'age_fin':[self.age_fin()],
+                           'ci':[self.ci()],
+                           'crd':[self.crd(t)],
+                           'duree_restante':[self.duree_restante(t) for t in range(ultim)],
+                           'taux_nominal':[self.taux_nominal()],
+                           'taux_mensuel':[self.taux_mensuel()],
+                           'mensualite':[self.mensualite()],
+                           'prime_dc':[self.prime_dc()],
+                           'prime_inc_inv':[self.prime_inc_inv()],
+                           'prime_ch':[self.prime_ch()],
+                           'produit':[self.produit()],
+                           'distribution_channel':[self.distribution_channel()],
+                           'nb_contrats':[self.nb_contrats()],
+                           'duree_sinistre':[self.duree_sinistre(t) for t in range(ultim)],
+                           'prob_passage_inc_inv':[self.prob_passage_inc_inv(t) for t in range(ultim)]})
+        return df
+        
 #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
 ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
 projection = ADEFlux(ModelPoint.loc[0,:])
