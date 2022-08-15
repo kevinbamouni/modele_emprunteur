@@ -290,14 +290,14 @@ class ADEFlux():
 
     def crd(self, t):
         """
-            retourne le Credit Restant dû
+            retourne le Montant Restant dû du crédit juste après la mensualité versé à l'instant t
         Returns:
             float: montant du capital restant dû
         """
-        crd = self.loan_balance_at_n(self.ci(), self.taux_nominal(), 12, self.duree_pret()/12, self.duree_pret()-self.duree_restante+t)
+        crd = self.loan_balance_at_n(self.ci(), self.taux_nominal(), 12, self.duree_pret()/12, (self.duree_pret()-self.duree_restante(t)))
         return crd
 
-    @cachingc
+    @functools.lru_cache
     def duree_restante(self,t):
         return self.ModelPointRow.duree_restante - t
 
@@ -428,7 +428,7 @@ class ADEFlux():
         df['CumulativePrincipal'] = np.cumsum(df.PrincipalPaid)
         df['Principal'] = amount
         df['Balance'] = df['Principal'] + df['CumulativePrincipal']
-        df['Mois'] = np.arange(1, df.shape[1]+1, 1)
+        df['Mois'] = np.arange(1, df.shape[0]+1, 1)
         return (df)
     
     def loan_balance_at_n(self, amount, annualinterestrate, paymentsperyear, years, n):
