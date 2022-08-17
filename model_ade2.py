@@ -5,6 +5,7 @@ Created on Mon Aug  8 14:26:37 2022
 @author: work
 """
 
+from re import T
 import pandas as pd
 import numpy as np
 import functools
@@ -416,7 +417,7 @@ class ADEFlux():
         return ((som1 + som2) / (2 * l))
 
     def amortisation_schedule(self, amount, annualinterestrate, paymentsperyear, years):
-        """_summary_
+        """
             Tableau d'amortissement du prêt
         Args:
             amount (float): Montant du prêt
@@ -441,29 +442,35 @@ class ADEFlux():
         return amount+np.sum(principalpaid)
 
     def results(self):
+        """Projection du model point à la fin du contrat et ou des garanties
+
+        Returns:
+            DataFrame: variables du mp projetées dans le temps
+        """
         ultim = self.duree_restante(0)
-        df = pd.DataFrame({'mp_id':[self.mp_id()],
-                           'sexe':[self.sexe()],
-                           'etat':[self.etat()],
-                           'age_actuel':[self.age_actuel()],
-                           'age_souscription_annee':[self.age_souscription_annee(t) for t in range(ultim)],
-                           'annee_souscription':[self.annee_souscription()],
+        df = pd.DataFrame({'time':[t for t in range(ultim)],
+                           'mp_id':[self.mp_id() for t in range(ultim)],
+                           'sexe':[self.sexe() for t in range(ultim)],
+                           'etat':[self.etat() for t in range(ultim)],
+                           'age_actuel':[self.age_actuel(t)  for t in range(ultim)],
+                           'age_souscription_annee':[self.age_souscription_annee() for t in range(ultim)],
+                           'annee_souscription':[self.annee_souscription() for t in range(ultim)],
                            'anciennete_contrat_annee':[self.anciennete_contrat_annee(t) for t in range(ultim)],
                            'anciennete_contrat_mois':[self.anciennete_contrat_mois(t) for t in range(ultim)],
-                           'duree_pret':[self.duree_pret()],
-                           'age_fin':[self.age_fin()],
-                           'ci':[self.ci()],
-                           'crd':[self.crd(t)],
+                           'duree_pret':[self.duree_pret() for t in range(ultim)],
+                           'age_fin':[self.age_fin() for t in range(ultim)],
+                           'ci':[self.ci() for t in range(ultim)],
+                           'crd':[self.crd(t)  for t in range(ultim)],
                            'duree_restante':[self.duree_restante(t) for t in range(ultim)],
-                           'taux_nominal':[self.taux_nominal()],
-                           'taux_mensuel':[self.taux_mensuel()],
-                           'mensualite':[self.mensualite()],
-                           'prime_dc':[self.prime_dc()],
-                           'prime_inc_inv':[self.prime_inc_inv()],
-                           'prime_ch':[self.prime_ch()],
-                           'produit':[self.produit()],
-                           'distribution_channel':[self.distribution_channel()],
-                           'nb_contrats':[self.nb_contrats()],
+                           'taux_nominal':[self.taux_nominal() for t in range(ultim)],
+                           'taux_mensuel':[self.taux_mensuel() for t in range(ultim)],
+                           'mensualite':[self.mensualite() for t in range(ultim)],
+                           'prime_dc':[self.prime_dc() for t in range(ultim)],
+                           'prime_inc_inv':[self.prime_inc_inv() for t in range(ultim)],
+                           'prime_ch':[self.prime_ch() for t in range(ultim)],
+                           'produit':[self.produit() for t in range(ultim)],
+                           'distribution_channel':[self.distribution_channel() for t in range(ultim)],
+                           'nb_contrats':[self.nb_contrats() for t in range(ultim)],
                            'duree_sinistre':[self.duree_sinistre(t) for t in range(ultim)],
                            'prob_passage_inc_inv':[self.prob_passage_inc_inv(t) for t in range(ultim)]})
         return df
