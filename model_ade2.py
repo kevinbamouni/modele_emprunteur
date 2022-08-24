@@ -345,6 +345,54 @@ class ADEFlux():
         if num < 2:
             return num
         return self.fibonacci(num - 1) + self.fibonacci(num - 2)
+    
+    def projection_initiale_state_at_t(self, init_state_at_t0, actual_state_at_t_n_1, mat_transitions):
+        res = np.zeros((2, mat_transitions.shape[1]))
+        tra = np.dot(actual_state_at_t_n_1, mat_transitions)
+        res[0,] = (init_state_at_t0>0)*tra
+        res[1,] = (init_state_at_t0==0)*tra
+        return res
+    
+    @functools.lru_cache
+    def vecteur_des_effectifs_at_t(self, t):
+        if t == 0:
+            if self.etat()=='v':
+                return self.nb_contrats(0) * np.array([[1, 0, 0, 0, 0, 0]])
+            if self.etat()=='ch':
+                return self.nb_contrats(0) * np.array([[0, 0, 1, 1, 0, 0]])
+            if self.etat()=='inc':
+                return self.nb_contrats(0) * np.array([[0, 0, 0, 1, 0, 0]])
+        else:
+            return np.array([[1, 0, 0, 0, 0, 0]])
+            
+    def constitution_matrix_transitions(self, sex, age_at_t, age_entree_etat, duration_etat_at_t, t):
+        # initialisation de la matrice des transtions à zeros
+        mat = np.zeros((6, 6))
+        # From valide to ...
+        mat[0,1] = ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t))/12
+        mat[0,2] = ADEFlux.Incidence.prob_entree_chomage(self.age_actuel(t))
+        mat[0,3] = ADEFlux.Incidence.prob_entree_incap(self.age_actuel(t))
+        mat[0,4] = ADEFlux.Incidence.prob_entree_inval(self.age_actuel(t))
+        mat[0,5] = ADEFlux.Lapse.prob_rachat(self.produit() , self.anciennete_contrat_mois(t))
+        mat[0,0] = 1 - np.sum(mat[0,:])
+        # From DC to ...
+        # From Chomage to ...
+        # From incap to ...
+        # From invalidite to ...
+        # From Lapse to ...
+        return mat
+
+    @functools.lru_cache
+    def get_next_state(self, t):
+        mat_transitions = np.array([[]])
+        if t == 0:
+            return self.vecteur_des_effectifs_at_t(0)
+        else:
+            init_state_projection = self.projection_initial_state_at_t(self.vecteur_des_effectifs_at_t(0), self.get_next_state(t-1)[0,:], mat_transitions)
+            for row_i in range(1, self.get_next_state(t-1).shape[0]):
+                project_at_t = np.dot(self.get_next_state(t-1)[row_i,:], mat_transitions)
+                init_state_projection = np.vstack([init_state_projection, project_at_t.reshape(1, mat_transitions.shape[0])])
+        return init_state_projection
 
     @functools.lru_cache
     def nombre_de_v(self, t):
