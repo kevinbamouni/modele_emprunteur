@@ -107,7 +107,7 @@ class TblProd():
 
 class LoiMaintienChomage():
     """
-        Represente la loi de maintien en chômage
+        Represente la loi de maintien en chômage entre t et t+1
     """
     def __init__(self, maintienCh) -> None:
         self.MaintienCh = maintienCh
@@ -123,7 +123,7 @@ class LoiMaintienChomage():
 
 class LoiMaintienIncapacite():
     """
-        Represente la loi de maintien en chômage
+        Represente la loi de maintien en incapacite entre t et t+1
     """
     def __init__(self, maintienIncap) -> None:
         self.MaintienIncap = maintienIncap
@@ -139,7 +139,7 @@ class LoiMaintienIncapacite():
 
 class LoiPasssageInvalidite():
     """
-        Represente la loi de passage en invalidité
+        Represente la loi de passage en invalidité entre t et t+1
     """
     def __init__(self, passageInval) -> None:
         self.PassageInval = passageInval
@@ -151,6 +151,8 @@ class LoiPasssageInvalidite():
             return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==math.floor(age_entree),str(self.PassageInval.shape[1]-2)].values[0]
 
 class LoiIncidence():
+    """Probabilité des valides de passer en incap, ou inval, ou chomage, aussi appelée loi d'incidence
+    """
     def __init__(self, incidence) -> None:
         self.Incidence = incidence
 
@@ -176,6 +178,8 @@ class LoiIncidence():
             return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_inval"].values[0]
 
 class LoiMortalite():
+    """Loi de mortalité ou table de mortalité, probabilités pour un individu d'age x de decede avant l'age x+1
+    """
     def __init__(self, mortaliteTH, mortaliteTF) -> None:
         self.MortaliteTH = mortaliteTH
         self.MortaliteTF = mortaliteTF
@@ -331,14 +335,17 @@ class ADEFlux():
 
     def nb_contrats(self):
         return self.ModelPointRow.nb_contrats
+    
+    def age_entree_sinistre(self, t):
+        return self.age_actuel(t) - self.duree_sinistre(t)
 
     @functools.lru_cache
     def duree_sinistre(self,t):
         return self.ModelPointRow.duree_sinistre + t
 
     @functools.lru_cache
-    def prob_passage_inc_inv(self, t):
-        return self.PassageInval.nombre_passage_inval(self.age_actuel(t), self.duree_sinistre(t))/self.MaintienIncap.nombre_maintien_incap(self.age_actuel(t), self.duree_sinistre(t))
+    def prob_passage_inc_inv(self, age_entree, duration_incap):
+        return self.PassageInval.nombre_passage_inval(age_entree, duration_incap)/self.MaintienIncap.nombre_maintien_incap(age_entree, duration_incap)
 
     @functools.lru_cache
     def fibonacci(self, num):
@@ -365,21 +372,35 @@ class ADEFlux():
         else:
             return np.array([[1, 0, 0, 0, 0, 0]])
             
-    def constitution_matrix_transitions(self, sex, age_at_t, age_entree_etat, duration_etat_at_t, t):
+    def constitution_matrix_transitions(self, age_entree_etat, duration_etat_at_t, t):
         # initialisation de la matrice des transtions à zeros
+        sex = self.sexe()
+        age_actuel = self.age_actuel(t)
+        produit = self.produit()
+        anc_contrat_mois = self.anciennete_contrat_mois(t)
         mat = np.zeros((6, 6))
         # From valide to ...
-        mat[0,1] = ADEFlux.Mortalite.prob_dc(self.sexe(), self.age_actuel(t))/12
-        mat[0,2] = ADEFlux.Incidence.prob_entree_chomage(self.age_actuel(t))
-        mat[0,3] = ADEFlux.Incidence.prob_entree_incap(self.age_actuel(t))
-        mat[0,4] = ADEFlux.Incidence.prob_entree_inval(self.age_actuel(t))
-        mat[0,5] = ADEFlux.Lapse.prob_rachat(self.produit() , self.anciennete_contrat_mois(t))
+        mat[0,1] = ADEFlux.Mortalite.prob_dc(sex, age_actuel)/12
+        mat[0,2] = ADEFlux.Incidence.prob_entree_chomage(age_actuel)
+        mat[0,3] = ADEFlux.Incidence.prob_entree_incap(age_actuel)
+        mat[0,4] = ADEFlux.Incidence.prob_entree_inval(age_actuel)
+        mat[0,5] = ADEFlux.Lapse.prob_rachat(produit , anc_contrat_mois)
         mat[0,0] = 1 - np.sum(mat[0,:])
         # From DC to ...
+        mat[1,1] = 1
         # From Chomage to ...
+        mat[2,1] = ADEFlux.Mortalite.prob_dc(sex, age_actuel)/12
+        mat[2,2] = ADEFlux.MaintienCh.prob_passage_ch_ch(age_entree_etat, duration_etat_at_t)
+        mat[2,0] = 1 - np.sum(mat[2,:])
         # From incap to ...
+        mat[3,1] = ADEFlux.Mortalite.prob_dc(sex, age_actuel)/12
+        mat[3,3] = ADEFlux.MaintienIncap.prob_passage_inc_inc(age_entree_etat, duration_etat_at_t)
+        mat[3,4] = self.prob_passage_inc_inv(age_entree_etat, duration_etat_at_t)
+        mat[3,0] = 1 - np.sum(mat[3,:])
         # From invalidite to ...
+        mat[4,4] = 1
         # From Lapse to ...
+        mat[5,5] = 1
         return mat
 
     @functools.lru_cache
