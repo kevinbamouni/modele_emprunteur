@@ -360,19 +360,21 @@ class ADEFlux():
         res[1,] = (init_state_at_t0==0)*tra
         return res
     
-    @functools.lru_cache
-    def vecteur_des_effectifs_at_t(self, t):
-        if t == 0:
-            if self.etat()=='v':
-                return self.nb_contrats(0) * np.array([[1, 0, 0, 0, 0, 0]])
-            if self.etat()=='ch':
-                return self.nb_contrats(0) * np.array([[0, 0, 1, 1, 0, 0]])
-            if self.etat()=='inc':
-                return self.nb_contrats(0) * np.array([[0, 0, 0, 1, 0, 0]])
-        else:
-            return np.array([[1, 0, 0, 0, 0, 0]])
-            
     def constitution_matrix_transitions(self, age_entree_etat, duration_etat_at_t, t):
+        """Calcul de la matrice des probabilité de transitions pour les 6 états : 
+        [VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE]    x   [VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE]
+        les états absorbants ont une probabilité totale de changement d'état = 0 (au lieu de 1) : somme(i,j): j -> 1 à n, i constante = 0.
+        Ce qui permet de calculer uniquement à l'instant t l'effectif des autres états qui ont transité dans un état absorbant et non le cumul
+        depuis le début de la projection
+        
+        Args:
+            age_entree_etat (int): age d'entrée dans l'état en années
+            duration_etat_at_t (int): duration dans l'état à l'instant t en mois
+            t (int): instant t de projection
+
+        Returns:
+            Matrice: Matrice carrée des proba de transitions avec l'élément [i,j] est la proba de passer de l'état i à l'état j
+        """
         # initialisation de la matrice des transtions à zeros
         sex = self.sexe()
         age_actuel = self.age_actuel(t)
@@ -381,13 +383,13 @@ class ADEFlux():
         mat = np.zeros((6, 6))
         # From valide to ...
         mat[0,1] = ADEFlux.Mortalite.prob_dc(sex, age_actuel)/12
-        mat[0,2] = ADEFlux.Incidence.prob_entree_chomage(age_actuel)
-        mat[0,3] = ADEFlux.Incidence.prob_entree_incap(age_actuel)
-        mat[0,4] = ADEFlux.Incidence.prob_entree_inval(age_actuel)
+        mat[0,2] = ADEFlux.Incidence.prob_entree_chomage(age_actuel)/12
+        mat[0,3] = ADEFlux.Incidence.prob_entree_incap(age_actuel)/12
+        mat[0,4] = ADEFlux.Incidence.prob_entree_inval(age_actuel)/12
         mat[0,5] = ADEFlux.Lapse.prob_rachat(produit , anc_contrat_mois)
         mat[0,0] = 1 - np.sum(mat[0,:])
         # From DC to ...
-        mat[1,1] = 1
+        mat[1,1] = 0
         # From Chomage to ...
         mat[2,1] = ADEFlux.Mortalite.prob_dc(sex, age_actuel)/12
         mat[2,2] = ADEFlux.MaintienCh.prob_passage_ch_ch(age_entree_etat, duration_etat_at_t)
@@ -398,13 +400,21 @@ class ADEFlux():
         mat[3,4] = self.prob_passage_inc_inv(age_entree_etat, duration_etat_at_t)
         mat[3,0] = 1 - np.sum(mat[3,:])
         # From invalidite to ...
-        mat[4,4] = 1
+        mat[4,4] = 0
         # From Lapse to ...
-        mat[5,5] = 1
+        mat[5,5] = 0
         return mat
 
     @functools.lru_cache
     def get_next_state(self, t):
+        """Vieillissement des effectifs
+
+        Args:
+            t (int): temps t de projection
+
+        Returns:
+            matrice: repartitions des effectis par anciennetée
+        """
         mat_transitions = np.array([[]])
         if t == 0:
             return self.vecteur_des_effectifs_at_t(0)
@@ -413,7 +423,27 @@ class ADEFlux():
             for row_i in range(1, self.get_next_state(t-1).shape[0]):
                 project_at_t = np.dot(self.get_next_state(t-1)[row_i,:], mat_transitions)
                 init_state_projection = np.vstack([init_state_projection, project_at_t.reshape(1, mat_transitions.shape[0])])
+            init_state_projection[0,0] = np.sum(init_state_projection[:,0])
+            init_state_projection[1:,0] = 0
         return init_state_projection
+    
+    @functools.lru_cache
+    def vecteur_des_effectifs_at_t(self, t):
+        """Vecteur de effectifs :
+            6 états suivants : VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE
+
+        Returns:
+            vecteur : Effectifs par état sour la forme [Nombre de VALIDE, Nombre de DC, Nombre de CHOMAGE, Nombre de INCAPACITE, Nombre de INVALIDITE, Nombre de LAPSE]
+        """
+        if t == 0:
+            if self.etat()=='v':
+                return self.nb_contrats(0) * np.array([[1, 0, 0, 0, 0, 0]])
+            if self.etat()=='ch':
+                return self.nb_contrats(0) * np.array([[0, 0, 1, 1, 0, 0]])
+            if self.etat()=='inc':
+                return self.nb_contrats(0) * np.array([[0, 0, 0, 1, 0, 0]])
+        else:
+            return  np.sum(self.get_next_state(t), axis=0)
 
     @functools.lru_cache
     def nombre_de_v(self, t):
@@ -540,8 +570,7 @@ class ADEFlux():
                            'produit':[self.produit() for t in range(ultim)],
                            'distribution_channel':[self.distribution_channel() for t in range(ultim)],
                            'nb_contrats':[self.nb_contrats() for t in range(ultim)],
-                           'duree_sinistre':[self.duree_sinistre(t) for t in range(ultim)],
-                           'prob_passage_inc_inv':[self.prob_passage_inc_inv(t) for t in range(ultim)]})
+                           'duree_sinistre':[self.duree_sinistre(t) for t in range(ultim)]})
         return df
         
 #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
