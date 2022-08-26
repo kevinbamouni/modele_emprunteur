@@ -5,6 +5,7 @@ Created on Mon Aug  8 14:26:37 2022
 @author: work
 """
 
+from ast import main
 from re import T
 import pandas as pd
 import numpy as np
@@ -415,12 +416,14 @@ class ADEFlux():
         Returns:
             matrice: repartitions des effectis par anciennetée
         """
-        mat_transitions = np.array([[]])
+        
         if t == 0:
             return self.vecteur_des_effectifs_at_t(0)
         else:
+            mat_transitions = self.constitution_matrix_transitions(self.age_entree_sinistre(t), self.duree_sinistre(t), t)
             init_state_projection = self.projection_initial_state_at_t(self.vecteur_des_effectifs_at_t(0), self.get_next_state(t-1)[0,:], mat_transitions)
             for row_i in range(1, self.get_next_state(t-1).shape[0]):
+                mat_transitions = self.constitution_matrix_transitions(self.age_entree_sinistre(t), row_i, t) # durée sinistre = row_i pour modéliser les nouvelles transtions
                 project_at_t = np.dot(self.get_next_state(t-1)[row_i,:], mat_transitions)
                 init_state_projection = np.vstack([init_state_projection, project_at_t.reshape(1, mat_transitions.shape[0])])
             init_state_projection[0,0] = np.sum(init_state_projection[:,0])
@@ -572,8 +575,9 @@ class ADEFlux():
                            'nb_contrats':[self.nb_contrats() for t in range(ultim)],
                            'duree_sinistre':[self.duree_sinistre(t) for t in range(ultim)]})
         return df
-        
-#data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
-ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
-projection = ADEFlux(ModelPoint.loc[0,:])
-projection.produit()
+
+if __name__=="__main__":
+    #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
+    ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
+    projection = ADEFlux(ModelPoint.loc[0,:])
+    projection.get_next_state(1)

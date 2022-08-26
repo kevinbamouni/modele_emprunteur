@@ -3,7 +3,7 @@
 
 ## Introduction
 
-Modele de projection des cash flow d'un effectif de models point d'un portefeuille assurance emprunteur. Le modele est developpé en programmation orientée objet avec des méthodes récursives (algorithmes récursifs) donc les différentes exécutions sont mises en cache avec le decorateur @functools.lru_cache du package functools de python. L'objectif de la mise en cache, des résultats d'éxécution des méthodes est d'accélérer les calculs (via la ***memoization***). 
+Modele de projection des cash flow d'un effectif de models point d'un portefeuille assurance emprunteur. Le modele est developpé en programmation orientée objet avec des méthodes récursives (algorithmes récursifs) donc les différentes exécutions sont mises en cache avec le decorateur @functools.lru_cache du package functools de python. L'objectif de la mise en cache, des résultats d'éxécutions des méthodes est d'accélérer les calculs (la ***memoization***). 
 
 ## Projection des effectifs
 
@@ -40,4 +40,7 @@ Elle représente les probabilités de passage entre états :
   | 1      | 0   | 0       | 0          | 0          | 0     |
 
   Soit la matrice des transitions entre $t-1$ et $t$ : $M(t)$
+  La Matrice de transition $M(t)$ est calculée à partir des différentes lois de transitions et d'incidences. ces lois, dans ce modèle sont fonction de l'âge, l'âge d'entré dans un état ainsi que la duration effectuée dans cet état.
   On a Le vecteur des effectifs à $t$ : $  V(t) = V(t-1) * M(t) $
+
+
