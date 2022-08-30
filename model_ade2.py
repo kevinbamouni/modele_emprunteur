@@ -319,48 +319,20 @@ class ADEFlux():
     def mensualite(self):
         return self.ModelPointRow.mensualite
 
-    def prime_dc(self):
-        return self.ModelPointRow.prime_dc
+    # def prime_dc(self):
+    #     return self.ModelPointRow.prime_dc
 
-    def prime_inc_inv(self):
-        return self.ModelPointRow.prime_inc_inv
+    # def prime_inc_inv(self):
+    #     return self.ModelPointRow.prime_inc_inv
 
-    def prime_ch(self):
-        return self.ModelPointRow.prime_ch
+    # def prime_ch(self):
+    #     return self.ModelPointRow.prime_ch
 
     def produit(self):
         return self.ModelPointRow.produit
 
     def distribution_channel(self):
         return self.ModelPointRow.distribution_channel
-
-    @functools.lru_cache
-    def couv_inv(self):
-        if self.prime_inc_inv()==0:
-            return 0
-        else:
-            return 1
-    
-    @functools.lru_cache
-    def couv_inc(self):
-        if self.prime_ch()==0:
-            return 0
-        else:
-            return 1
-    
-    @functools.lru_cache
-    def couv_ch(self):
-        if self.prime_ch()==0:
-            return 0
-        else:
-            return 1
-    
-    @functools.lru_cache
-    def couv_dc(self):
-        if self.prime_dc()==0:
-            return 0
-        else:
-            return 1
 
     def nb_contrats(self):
         return self.ModelPointRow.nb_contrats
@@ -480,11 +452,11 @@ class ADEFlux():
         """OSLR  chomage
 
         Args:
-            age_entre (_type_): _description_
-            dure_ecoulee (_type_): _description_
-            D1 (_type_): _description_
-            D2 (_type_): _description_
-            taux_actu (_type_): _description_
+            age_entre (int): Age à la survenance du sinistre
+            dure_ecoulee (int): Durée écoulée en incapacité en mois
+            D1 (int): Début du paiement dans D1 mois (si pas de franchise à 0), nombre de mosi de carence
+            D2 (int): Fin du paiement de l'incapacité dans D2 mois (cas 1: D2+dureecoulee est inférieure à 35 mois)
+            taux_actu (float): Taux technique d'actualisation
         """
         som1 = 0
         som2 = 0
@@ -518,12 +490,12 @@ class ADEFlux():
         """PRC ITT 
 
         Args:
-            agentree (_type_): Age à la survenance du sinistre
-            durecoulee (_type_): Durée écoulée en incapacité en mois
-            D1 (_type_): Début du paiement dans D1 mois (si pas de franchise à 0), nombre de mosi de carence
-            D2 (_type_): Fin du paiement de l'incapacité dans D2 mois (cas 1: D2+dureecoulee est inférieure à 35 mois)
-            taux (_type_): Taux d'intérêt technique
-            crd (_type_): Credit restant dû
+            agentree (int): Age à la survenance du sinistre
+            durecoulee (int): Durée écoulée en incapacité en mois
+            D1 (int): Début du paiement dans D1 mois (si pas de franchise à 0), nombre de mosi de carence
+            D2 (int): Fin du paiement de l'incapacité dans D2 mois (cas 1: D2+dureecoulee est inférieure à 35 mois)
+            taux (float): Taux d'intérêt technique
+            crd (float): Credit restant dû
 
         Returns:
             float: _description_
@@ -560,6 +532,34 @@ class ADEFlux():
     def loan_balance_at_n(self, amount, annualinterestrate, paymentsperyear, years, n):
         principalpaid = [npf.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(n)]
         return amount+np.sum(principalpaid)
+    
+    @functools.lru_cache
+    def couv_inv(self):
+        if self.ReferentielProduit.get_tx_prime_inc(self.produit())==0:
+            return 0
+        else:
+            return 1
+    
+    @functools.lru_cache
+    def couv_inc(self):
+        if self.ReferentielProduit.get_tx_prime_inc(self.produit())==0:
+            return 0
+        else:
+            return 1
+    
+    @functools.lru_cache
+    def couv_ch(self):
+        if self.ReferentielProduit.get_tx_prime_chomage(self.produit())==0:
+            return 0
+        else:
+            return 1
+    
+    @functools.lru_cache
+    def couv_dc(self):
+        if self.ReferentielProduit.get_tx_prime_dc(self.produit())==0:
+            return 0
+        else:
+            return 1
 
     def projection_des_effectif_du_mp(self):
         """Projection du model point à la fin du contrat et ou des garanties
@@ -585,9 +585,9 @@ class ADEFlux():
                            'taux_nominal':[self.taux_nominal() for t in range(ultim)],
                            'taux_mensuel':[self.taux_mensuel() for t in range(ultim)],
                            'mensualite':[self.mensualite() for t in range(ultim)],
-                           'prime_dc':[self.prime_dc() for t in range(ultim)],
-                           'prime_inc_inv':[self.prime_inc_inv() for t in range(ultim)],
-                           'prime_ch':[self.prime_ch() for t in range(ultim)],
+                           #'prime_dc':[self.prime_dc() for t in range(ultim)],
+                           #'prime_inc_inv':[self.prime_inc_inv() for t in range(ultim)],
+                           #'prime_ch':[self.prime_ch() for t in range(ultim)],
                            'produit':[self.produit() for t in range(ultim)],
                            'distribution_channel':[self.distribution_channel() for t in range(ultim)],
                            'nb_contrats':[np.sum(self.vecteur_des_effectifs_at_t(t)) for t in range(ultim)],
@@ -608,26 +608,110 @@ class ADEFlux():
     
     def calcul_des_flux_du_mp(self):
         df = self.projection_des_effectif_du_mp()
+        produit = self.produit()
         # flux sinistres et frais gestion sinistres
         df["sinistre_dc"] = df.apply(lambda x: x.dc * x.crd * x.couv_dc if (x.anciennete_contrat_annee<=30) or (x.age_actuel<=75) else 0, axis=1)
         df["sinistre_inv"] = df.apply(lambda x: x.inv * x.crd * x.couv_inv if (x.anciennete_contrat_annee<=30) or (x.age_actuel<=60) else 0, axis=1)
         df["sinistre_ch"] = df.apply(lambda x: x.ch * x.mensualite * x.couv_ch if (x.anciennete_contrat_annee<=30) or (x.age_actuel<=65) else 0, axis=1)
         df["sinistre_inc"] = df.apply(lambda x: x.inc * x.mensualite * x.couv_inc if (x.anciennete_contrat_annee<=30) or (x.age_actuel<=65)  else 0, axis=1)
         df["total_sinistre"] = df["sinistre_dc"]+df["sinistre_inv"]+df["sinistre_ch"]+df["sinistre_inc"]
-        df["frais_gest_sin"] = df["total_sinistre"] * self.ReferentielProduit.get_tx_frais_gest_sin(self.produit())
+        df["frais_gest_sin"] = df["total_sinistre"] * self.ReferentielProduit.get_tx_frais_gest_sin(produit)
         # flux primes
-        df["primes_valides"] = df.v * (self.ReferentielProduit.get_tx_prime_chomage(self.produit())+self.ReferentielProduit.get_tx_prime_dc(self.produit())+self.ReferentielProduit.get_tx_prime_inc(self.produit())) * df.ci
-        df["primes_inc"] = df.inc * (self.ReferentielProduit.get_tx_prime_chomage(self.produit())+self.ReferentielProduit.get_tx_prime_dc(self.produit())+self.ReferentielProduit.get_tx_prime_inc(self.produit())) * df.ci
-        df["primes_ch"] = df.ch * (self.ReferentielProduit.get_tx_prime_chomage(self.produit())+self.ReferentielProduit.get_tx_prime_dc(self.produit())+self.ReferentielProduit.get_tx_prime_inc(self.produit())) * df.ci
+        df["primes_valides"] = df.v * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
+        df["primes_inc"] = df.inc * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
+        df["primes_ch"] = df.ch * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
         df["total_primes"] = df["primes_valides"]+df["primes_inc"]+df["primes_ch"]
         #flux frais sur primes
-        df["frais_administrations"] = self.ReferentielProduit.get_tx_frais_admin(self.produit()) * df["total_primes"]
-        df["frais_acquisitions"] = self.ReferentielProduit.get_tx_frais_acq(self.produit()) * df["total_primes"]
-        df["frais_commissions"] = self.ReferentielProduit.get_tx_comm(self.produit()) * df["total_primes"]
+        df["frais_administrations"] = self.ReferentielProduit.get_tx_frais_admin(produit) * df["total_primes"]
+        df["frais_acquisitions"] = self.ReferentielProduit.get_tx_frais_acq(produit) * df["total_primes"]
+        df["frais_commissions"] = self.ReferentielProduit.get_tx_comm(produit) * df["total_primes"]
         df["total_frais_primes"] = df["frais_commissions"] + df["frais_acquisitions"] + df["frais_administrations"]
         return df
+    
+    @functools.lru_cache
+    def sinistre_dc(self, t):
+        ultimate = self.duree_restante(0)
+        if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=75) and t<=ultimate:
+            return self.vecteur_des_effectifs_at_t(t)[1] * self.couv_dc() * self.crd(t)
+        else: return 0
         
- 
+    @functools.lru_cache
+    def sinistre_inv(self, t):
+        ultimate = self.duree_restante(0)
+        if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=60) and t<=ultimate:
+            return self.vecteur_des_effectifs_at_t(t)[4] * self.couv_inv() * self.crd(t)
+        else: return 0
+        
+    @functools.lru_cache
+    def sinistre_ch(self, t):
+        ultimate = self.duree_restante(0)
+        if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=65) and t<=ultimate:
+            return self.vecteur_des_effectifs_at_t(t)[2] * self.couv_ch() * self.mensualite()
+        else: return 0
+        
+    @functools.lru_cache
+    def sinistre_inc(self, t):
+        ultimate = self.duree_restante(0)
+        if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=65) and t<=ultimate:
+            return self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inc() * self.mensualite()
+        else: return 0
+        
+    @functools.lru_cache
+    def total_sinistre(self, t):
+        if t<=self.duree_restante(0):
+            return self.sinistre_dc(t) + self.sinistre_inv(t) + self.sinistre_inc(t) + self.sinistre_ch(t)
+        else: return 0
+    
+    @functools.lru_cache
+    def frais_gest_sin(self, t):
+        if t<=self.duree_restante(0):
+            return self.total_sinistre(t) * self.ReferentielProduit.get_tx_frais_gest_sin(self.produit())
+        else: return 0
+        
+    def prime_valide(self, t):
+        produit = self.produit()
+        if t<=self.duree_restante(0):
+            return self.vecteur_des_effectifs_at_t(t)[0] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
+        else: return 0
+    
+    def prime_inc(self, t):
+        produit = self.produit()
+        if t<=self.duree_restante(0):
+            return self.vecteur_des_effectifs_at_t(t)[3] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
+        else: return 0
+        
+    def prime_ch(self, t):
+        produit = self.produit()
+        if t<=self.duree_restante(0):
+            return self.vecteur_des_effectifs_at_t(t)[2] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
+        else: return 0
+        
+    def total_prime(self, t):
+        if t<=self.duree_restante(0):
+            return self.prime_valide(t) + self.prime_inc(t) + self.prime_ch(t)
+        else: return 0
+        
+    def frais_administrations(self, t):
+        if t<=self.duree_restante(0):
+            return self.ReferentielProduit.get_tx_frais_admin(self.produit()) * self.total_prime(t)
+        else: return 0
+        
+    def frais_acquisitions(self, t):
+        if t<=self.duree_restante(0):
+            return self.ReferentielProduit.get_tx_frais_acq(self.produit()) * self.total_prime(t)
+        else: return 0
+        
+    def frais_commissions(self, t):
+        if t<=self.duree_restante(0):
+            return self.ReferentielProduit.get_tx_comm(self.produit()) * self.total_prime(t)
+        else: return 0
+        
+    def total_frais_primes(self, t):
+        if t<=self.duree_restante(0):
+            return self.frais_administrations(t) + self.frais_acquisitions(t) + self.frais_commissions(t)
+        else: return 0
+        
+        
 if __name__=="__main__":
     #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
     ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
