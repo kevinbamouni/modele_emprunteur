@@ -181,9 +181,10 @@ class LoiIncidence():
 class LoiMortalite():
     """Loi de mortalité ou table de mortalité, probabilités pour un individu d'age x de decede avant l'age x+1
     """
-    def __init__(self, mortaliteTH, mortaliteTF) -> None:
+    def __init__(self, mortaliteTH, mortaliteTF, tech_int_rate=0) -> None:
         self.MortaliteTH = mortaliteTH
         self.MortaliteTF = mortaliteTF
+        self.tech_int_rate = tech_int_rate
 
     def max_age_mortality_th(self):
         return max(self.MortaliteTH["age_x"])
@@ -192,6 +193,15 @@ class LoiMortalite():
         return max(self.MortaliteTF["age_x"])
 
     def prob_dc(self, sexe, age_actuel):
+        """Return Qx for age and sex.
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
         if sexe=='F':
             if age_actuel>=self.max_age_mortality_tf():
                 return self.MortaliteTF.loc[self.MortaliteTF["age_x"]==self.max_age_mortality_tf(), "Qx"].values[0]
@@ -202,6 +212,210 @@ class LoiMortalite():
                 return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==self.max_age_mortality_th(), "Qx"].values[0]
             else :
                 return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==math.floor(age_actuel), "Qx"].values[0]
+    
+    @functools.lru_cache
+    def lx(self, sexe, age_actuel):
+        """The number of persons remaining at age
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if age_actuel == 0:
+            return 100000
+        else:
+            return self.lx(sexe, age_actuel-1) - self.dx(sexe, age_actuel-1)
+    
+    @functools.lru_cache
+    def dx(self, sexe, age_actuel):
+        """The number of persons who die between ages ``x`` and ``x+1``
+
+        Args:
+            x (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.lx(sexe, age_actuel) * self.prob_dc(sexe, age_actuel)
+    
+    def disc(self):
+        """_summary_
+
+        Args:
+            discountrate (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return 1 / (1 + self.tech_int_rate)
+    
+    def Dx(self, sexe, age_actuel):
+        """The commutation column :math:`D_{x} = l_{x}v^{x}`.
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.lx(sexe, age_actuel) * pow(self.disc(), age_actuel)
+    
+    @functools.lru_cache
+    def Nx(self, sexe, age_actuel):
+        """ The commutation column :math:`N_x`. 
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if age_actuel >= 110:    # TODO: Get the last age from the table
+            return self.Dx(sexe, age_actuel)
+        else:
+            return self.Nx(sexe, age_actuel+1) + self.Dx(sexe, age_actuel)
+    
+    @functools.lru_cache
+    def Mx(self, sexe, age_actuel):
+        """The commutation column :math:`M_x`.
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if age_actuel >= 110:
+            return self.Dx(sexe, age_actuel)
+        else:
+            return self.Mx(sexe, age_actuel+1) + self.Cx(sexe, age_actuel)
+        
+    def Exn(self, sexe, age_actuel, n):
+        """The value of an endowment on a person at age ``x``
+        payable after n years
+
+        .. math::
+
+        {}_{n}E_x
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+            n (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        if self.Dx(sexe, age_actuel) == 0:
+            return 0
+        else:
+            return self.Dx(sexe, age_actuel+n) / self.Dx(sexe, age_actuel)
+        
+    def Cx(self, sexe, age_actuel):
+        """The commutation column :math:`\\overline{C_x}`.
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+
+        Returns:
+            _type_: _description_
+        """
+        return self.dx(sexe, age_actuel) * pow(self.disc(), (age_actuel+0.5))
+    
+    def Axn(self, sexe, age_actuel, n, f=0):
+        """The present value of an assurance on a person at age ``x`` payable
+            immediately upon death, optionally with an waiting period of ``f`` years.
+
+            .. math::
+
+                \\require{enclose}{}_{f|}\\overline{A}^{1}_{x:\\enclose{actuarial}{n}}
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+            n (_type_): _description_
+            f (int, optional): waiting period in years. Defaults to 0.
+
+        Returns:
+            _type_: _description_
+        """
+        if self.Dx(sexe, age_actuel) == 0:
+            return 0
+        else:
+            return (self.Mx(sexe, age_actuel+f) - self.Mx(sexe, age_actuel+f+n)) / self.Dx(sexe, age_actuel)
+        
+    def Ax(self, sexe, age_actuel, f=0):
+        """The present value of a lifetime assurance on a person at age ``x``
+            payable immediately upon death, optionally with an waiting period of ``f`` years.
+
+            .. math::
+
+        \\require{enclose}{}_{f|}\\overline{A}_{x}
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+            f (int, optional): waiting period in years. Defaults to 0.
+
+        Returns:
+            _type_: _description_
+        """
+        if self.Dx(sexe, age_actuel) == 0:
+            return 0
+        else:
+            return self.Mx(sexe,age_actuel+f) / self.Dx(sexe, age_actuel)
+        
+    def AnnDuex(self, sexe, age_actuel, k, f=0):
+        """The present value of a lifetime annuity due.
+
+        Args:
+            sexe (_type_): _description_
+            age_actuel (_type_): _description_
+            k (int): number of split payments in a year
+            f (int, optional): waiting period in years. Defaults to 0.
+
+        Returns:
+            _type_: _description_
+        """
+        if self.Dx(sexe, age_actuel) == 0:
+            return 0
+        result = (self.Nx(sexe, age_actuel+f)) / self.Dx(sexe, age_actuel)
+        if k > 1:
+            return result - (k-1) / (2*k)
+        else:
+            return result
+        
+    def AnnDuenx(self, sexe, age_actuel, n , k=1, f=0):
+        """The present value of an annuity-due.
+
+            .. math::
+
+                \\require{enclose}{}_{f|}\\ddot{a}_{x:\\enclose{actuarial}{n}}^{(k)}
+        Args:
+            sexe (_type_): sexe
+            age_actuel (_type_): age
+            n (_type_): length of annuity payments in years
+            k (int, optional): number of split payments in a year Defaults to 1.
+            f (int, optional): waiting period in years Defaults to 0.
+
+        Returns:
+            _type_: _description_
+        """
+        if self.Dx(sexe, age_actuel) == 0:
+            return 0
+        result = (self.Nx(sexe, age_actuel+f) - self.Nx(sexe, age_actuel+f+n)) / self.Dx(sexe, age_actuel)
+
+        if k > 1:
+            return result - (k-1) / (2*k) * (1 - self.Dx(sexe, age_actuel+f+n) / self.Dx(sexe, age_actuel))
+        else:
+            return result
 
 class LoiRachat():
     def __init__(self, lapse) -> None:
@@ -466,7 +680,7 @@ class ADEFlux():
             som2 = som2 + ((1 + taux_actu)^(-((i + 1) / 12))) * ADEFlux.MaintienCh.nombre_maintien_chomage(age_entre, dure_ecoulee + i + 1)
         return((som1 + som2) / (2 * l))
 
-    def pmxinc(agentree, durecoulee, D1, D2, taux_actu):
+    def pmxinc(self, agentree, durecoulee, D1, D2, taux_actu):
         """OSLR Incapacite
 
         Args:
@@ -486,7 +700,7 @@ class ADEFlux():
             som2 = som2 + ((1 + taux_actu)^(-((i + 1) / 12))) * ADEFlux.MaintienIncap.nombre_maintien_incap(agentree, durecoulee + i + 1)
         return ((som1 + som2) / (2 * l))
 
-    def pmxpot2(agentree, durecoulee, D1, D2, taux, crd):
+    def pmxpot2(self, agentree, durecoulee, D1, D2, taux, crd):
         """PRC ITT 
 
         Args:
@@ -507,7 +721,52 @@ class ADEFlux():
             som1 = som1 + ((1 + taux) ^ -(i / 12)) * ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i) * prov
             som2 = som2 + ((1 + taux) ^ -((i + 1) / 12)) * ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i + 1) * prov
         return ((som1 + som2) / (2 * l))
+    
+    def prc_itt2_v2(self, agentree, D2, taux, crd, mensualite):
+        """_summary_
 
+        Args:
+            agentree (int): _description_
+            D2 (int): _description_
+            taux (float): _description_
+            crd (float): _description_
+            mensualite (float): _description_
+        """
+        som = 0
+        for i in range(0,D2+1):
+            som = som + self.Incidence.prob_entree_incap(round(agentree + i / 12)) * (self.pmxinc(round(agentree + i / 12), 0, 0, D2, taux) * mensualite + self.pmxpot2(round(agentree + i / 12), 0, 0, D2, taux, crd)) * 0.0005 * ((1 + taux) ^ (-(i / 12)))
+            #lapse(lapse.matrix, caisse, contrat, floor((duration+i)/12)) )
+        return(som)
+    
+    def prc_dc_clot(self, t, tech_int_rate=0):
+        """provision pour risk croissant du risque DC
+
+        Args:
+            t (int): time t of projection
+            tech_int_rate (int, optional): technical interest rate for technical cash flow discount factor. Defaults to 0.
+
+        Returns:
+            float: provision pour risk croissant
+        """
+        eng_assureur = 0
+        eng_assure = 0
+        duree_restante = self.duree_restante(t)
+        age_actuel = self.age_actuel(t)
+        sexe = self.sexe()
+        produit = self.produit()
+        for i in range(0, duree_restante+1):
+            eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.Mortalite.prob_dc(sexe, round(age_actuel+i)) * self.crd(t+i) * pow((1+tech_int_rate), (-i-0.5))
+        
+        for i in range(0, duree_restante+1):
+            eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_dc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
+        return max(eng_assureur-eng_assure, 0)
+    
+    @functools.lru_cache
+    def prc_dc_ouv(self, t, tech_int_rate=0):
+        if t==0:
+            return self.prc_dc_clot(0, tech_int_rate)
+        else : return self.prc_dc_clot(t-1, tech_int_rate)
+        
     def amortisation_schedule(self, amount, annualinterestrate, paymentsperyear, years):
         """
             Tableau d'amortissement du prêt
@@ -710,6 +969,37 @@ class ADEFlux():
         if t<=self.duree_restante(0):
             return self.frais_administrations(t) + self.frais_acquisitions(t) + self.frais_commissions(t)
         else: return 0
+    
+    @functools.lru_cache
+    def pm_inc_clo(self, t):
+        if t<=self.duree_restante(0):
+            return self.pmxinc(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, (35-self.anciennete_contrat_mois(t)), 0) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inc()
+        else: return 0
+    
+    def pm_inc_ouv(self, t):
+        if t==0:
+            return self.pm_inc_clo(0)
+        else : return self.pm_inc_clo(t-1)
+    
+    def pm_cho_clo(self, t):
+        if t<=self.duree_restante(0):
+            return self.pmxcho(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0) * self.vecteur_des_effectifs_at_t(t)[2] * self.couv_ch()
+        else: return 0
+        
+    def pm_cho_ouv(self, t):
+        if t==0:
+            return self.pm_cho_clo(0)
+        else : return self.pm_cho_clo(t-1)
+    
+    def pm_inc_inv_clo(self, t):
+        if t<=self.duree_restante(0):
+            return self.pmxpot2(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0, self.crd(t)) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inv()
+        else: return 0
+        
+    def pm_inc_inv_ouv(self, t):
+        if t==0:
+            return self.pm_inc_inv_clo(0)
+        else : return self.pm_inc_inv_clo(t-1)
         
         
 if __name__=="__main__":
