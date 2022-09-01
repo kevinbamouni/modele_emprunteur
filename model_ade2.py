@@ -738,6 +738,23 @@ class ADEFlux():
             #lapse(lapse.matrix, caisse, contrat, floor((duration+i)/12)) )
         return(som)
     
+    def prc_inc_inc_clot(self, t, tech_int_rate=0):
+        eng_assureur = 0
+        eng_assure = 0
+        duree_restante = self.duree_restante(t)
+        age_actuel = self.age_actuel(t)
+        sexe = self.sexe()
+        produit = self.produit()
+        anc_contrat_mois = self.anciennete_contrat_mois(t)
+        for i in range(0, duree_restante+1):
+            eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) \
+            * self.Incidence.prob_entree_incap(round(age_actuel)) / 12 * (self.mensualite() * self.pmxinc(round(age_actuel+i), 0, 0, (35-anc_contrat_mois+i), 0))
+        
+        for i in range(0, duree_restante+1):
+            eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_inc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
+        return max(eng_assureur-eng_assure, 0)
+            
+    
     def prc_dc_clot(self, t, tech_int_rate=0):
         """provision pour risk croissant du risque DC
 
@@ -755,10 +772,10 @@ class ADEFlux():
         sexe = self.sexe()
         produit = self.produit()
         for i in range(0, duree_restante+1):
-            eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.Mortalite.prob_dc(sexe, round(age_actuel+i)) * self.crd(t+i) * pow((1+tech_int_rate), (-i-0.5))
+            eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.Mortalite.prob_dc(sexe, round(age_actuel+i)) / 12 * self.crd(t+i) * pow((1+tech_int_rate), (-i-0.5))
         
         for i in range(0, duree_restante+1):
-            eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_dc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
+            eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_dc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
         return max(eng_assureur-eng_assure, 0)
     
     @functools.lru_cache
