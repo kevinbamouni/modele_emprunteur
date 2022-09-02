@@ -533,15 +533,6 @@ class ADEFlux():
     def mensualite(self):
         return self.ModelPointRow.mensualite
 
-    # def prime_dc(self):
-    #     return self.ModelPointRow.prime_dc
-
-    # def prime_inc_inv(self):
-    #     return self.ModelPointRow.prime_inc_inv
-
-    # def prime_ch(self):
-    #     return self.ModelPointRow.prime_ch
-
     def produit(self):
         return self.ModelPointRow.produit
 
@@ -557,24 +548,22 @@ class ADEFlux():
     @functools.lru_cache
     def duree_sinistre(self,t):
         return self.ModelPointRow.duree_sinistre + t
-
+    
+    ### Hypothèse demographique
     @functools.lru_cache
     def prob_passage_inc_inv(self, age_entree, duration_incap):
-        return self.PassageInval.nombre_passage_inval(age_entree, duration_incap)/self.MaintienIncap.nombre_maintien_incap(age_entree, duration_incap)
+        """retourne la proba de passage de l'état inc vers inv
 
-    @functools.lru_cache
-    def fibonacci(self, num):
-        if num < 2:
-            return num
-        return self.fibonacci(num - 1) + self.fibonacci(num - 2)
+        Args:
+            age_entree (int): age entrée en incap
+            duration_incap (int): ancienneté en incap
+
+        Returns:
+            float: proba de passer de inc vers inv
+        """
+        return self.PassageInval.nombre_passage_inval(age_entree, duration_incap)/self.MaintienIncap.nombre_maintien_incap(age_entree, duration_incap)
     
-    def projection_initiale_state_at_t(self, init_state_at_t0, actual_state_at_t_n_1, mat_transitions):
-        res = np.zeros((2, mat_transitions.shape[1]))
-        tra = np.dot(actual_state_at_t_n_1, mat_transitions)
-        res[0,] = (init_state_at_t0>0)*tra
-        res[1,] = (init_state_at_t0==0)*tra
-        return res
-    
+    ### Projection des effectifs
     def constitution_matrix_transitions(self, age_entree_etat, duration_etat_at_t, t):
         """Calcul de la matrice des probabilité de transitions pour les 6 états : 
         [VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE]    x   [VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE]
@@ -619,10 +608,27 @@ class ADEFlux():
         # From Lapse to ...
         mat[5,5] = 0
         return mat
+    
+    def projection_initiale_state_at_t(self, init_state_at_t0, actual_state_at_t_n_1, mat_transitions):
+        """retourne les effectifs projeté poru chaque état à la maille duration
+
+        Args:
+            init_state_at_t0 (vecteur(6)): vecteur des effectifs à temps t=0. Ex : [0, 12, 0, 0, 0, 0]
+            actual_state_at_t_n_1 (vecteur(6)): vecteur des effectifs à temps t = t-1
+            mat_transitions (matrix(6,6)): matrice de transition entre états
+
+        Returns:
+            _type_: _description_
+        """
+        res = np.zeros((2, mat_transitions.shape[1]))
+        tra = np.dot(actual_state_at_t_n_1, mat_transitions)
+        res[0,] = (init_state_at_t0>0)*tra
+        res[1,] = (init_state_at_t0==0)*tra
+        return res
 
     @functools.lru_cache
     def get_next_state(self, t):
-        """Vieillissement des effectifs
+        """Projection des effectifs en temps t.
 
         Args:
             t (int): temps t de projection
@@ -630,7 +636,6 @@ class ADEFlux():
         Returns:
             matrice: repartitions des effectis par anciennetée
         """
-        
         if t == 0:
             return self.vecteur_des_effectifs_at_t(0).reshape(1,6)
         else:
@@ -646,11 +651,11 @@ class ADEFlux():
     
     @functools.lru_cache
     def vecteur_des_effectifs_at_t(self, t):
-        """Vecteur de effectifs :
+        """Vecteur de effectifs totaux par état temps t:
             6 états suivants : VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE
 
         Returns:
-            vecteur : Effectifs par état sour la forme [Nombre de VALIDE, Nombre de DC, Nombre de CHOMAGE, Nombre de INCAPACITE, Nombre de INVALIDITE, Nombre de LAPSE]
+            Vecteur(6) : Effectifs totaux par état sour la forme d'un vecteur [Nombre de VALIDE, Nombre de DC, Nombre de CHOMAGE, Nombre de INCAPACITE, Nombre de INVALIDITE, Nombre de LAPSE]
         """
         if t == 0:
             if self.etat()=='v':
@@ -662,6 +667,7 @@ class ADEFlux():
         else:
             return  np.sum(self.get_next_state(t), axis=0)
 
+    ### Fonctions utiles des calculs de provisions oslr et prc
     def pmxcho(self, age_entre, dure_ecoulee, D1, D2, taux_actu):
         """OSLR  chomage
 
@@ -788,13 +794,13 @@ class ADEFlux():
         """
             Tableau d'amortissement du prêt
         Args:
-            amount (float): Montant du prêt
+            amount (float): Montant initial du prêt
             annualinterestrate (float): taux d'interet annuel
             paymentsperyear (float): Nombre de paiment dans l'année
             years (int): nombre d'années du prêt
 
         Returns:
-            Pandas DataFrame: Tableau d'amortissement
+            Pandas DataFrame: Tableau d'amortissement du prêt
         """
         df = pd.DataFrame({'PrincipalPaid' :[npf.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(paymentsperyear*years)],
                            'InterestPaid' :[npf.ipmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(paymentsperyear*years)]})
@@ -806,11 +812,28 @@ class ADEFlux():
         return (df)
     
     def loan_balance_at_n(self, amount, annualinterestrate, paymentsperyear, years, n):
+        """montant/Capital restat dû juste après le n-ieme remboursement périodique
+
+        Args:
+            amount (float): Montant initial du prêt
+            annualinterestrate (flott): taux d'interêt annuel du pret
+            paymentsperyear (int): nombre de mensualités dans l'année
+            years (int): nombre d'années du prêt
+            n (int): N-ieme paiement effectué
+
+        Returns:
+            float: Capital restant dû juste après le (n)-ieme paiement
+        """
         principalpaid = [npf.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(n)]
         return amount+np.sum(principalpaid)
     
     @functools.lru_cache
     def couv_inv(self):
+        """couverture invalidité 
+
+        Returns:
+            bool: 0 si non couv inv et 1 si couv inv
+        """
         if self.ReferentielProduit.get_tx_prime_inc(self.produit())==0:
             return 0
         else:
@@ -818,6 +841,11 @@ class ADEFlux():
     
     @functools.lru_cache
     def couv_inc(self):
+        """couverture incapacité 
+
+        Returns:
+            bool: 0 si non couv inc et 1 si couv inc
+        """
         if self.ReferentielProduit.get_tx_prime_inc(self.produit())==0:
             return 0
         else:
@@ -825,6 +853,11 @@ class ADEFlux():
     
     @functools.lru_cache
     def couv_ch(self):
+        """couverture chomage 
+
+        Returns:
+            bool: 0 si non couv ch et 1 si couv ch
+        """
         if self.ReferentielProduit.get_tx_prime_chomage(self.produit())==0:
             return 0
         else:
@@ -832,6 +865,11 @@ class ADEFlux():
     
     @functools.lru_cache
     def couv_dc(self):
+        """couverture DC 
+
+        Returns:
+            bool: 0 si non couv dc et 1 si couv dc
+        """
         if self.ReferentielProduit.get_tx_prime_dc(self.produit())==0:
             return 0
         else:
@@ -906,6 +944,14 @@ class ADEFlux():
     
     @functools.lru_cache
     def sinistre_dc(self, t):
+        """Montant du sinistre pour DC
+
+        Args:
+            t (int): temps de projection
+
+        Returns:
+            float: Montant du sinistre pour DC à t
+        """
         ultimate = self.duree_restante(0)
         if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=75) and t<=ultimate:
             return self.vecteur_des_effectifs_at_t(t)[1] * self.couv_dc() * self.crd(t)
@@ -913,6 +959,14 @@ class ADEFlux():
         
     @functools.lru_cache
     def sinistre_inv(self, t):
+        """Montant du sinistre pour inv
+
+        Args:
+            t (int): temps de projection
+
+        Returns:
+            float: Montant du sinistre pour inv à t
+        """
         ultimate = self.duree_restante(0)
         if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=60) and t<=ultimate:
             return self.vecteur_des_effectifs_at_t(t)[4] * self.couv_inv() * self.crd(t)
@@ -920,6 +974,14 @@ class ADEFlux():
         
     @functools.lru_cache
     def sinistre_ch(self, t):
+        """Montant du sinistre pour ch
+
+        Args:
+            t (int): temps de projection
+
+        Returns:
+            float: Montant du sinistre pour ch à t
+        """
         ultimate = self.duree_restante(0)
         if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=65) and t<=ultimate:
             return self.vecteur_des_effectifs_at_t(t)[2] * self.couv_ch() * self.mensualite()
@@ -927,6 +989,14 @@ class ADEFlux():
         
     @functools.lru_cache
     def sinistre_inc(self, t):
+        """Montant du sinistre pour inc
+
+        Args:
+            t (int): temps de projection
+
+        Returns:
+            float: Montant du sinistre pour inc à t
+        """
         ultimate = self.duree_restante(0)
         if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=65) and t<=ultimate:
             return self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inc() * self.mensualite()
@@ -940,80 +1010,195 @@ class ADEFlux():
     
     @functools.lru_cache
     def frais_gest_sin(self, t):
+        """retourne le Montant total sinistre dc+inv+inc+ch à t
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: Montant total sinistre dc+inv+inc+ch à t
+        """
         if t<=self.duree_restante(0):
             return self.total_sinistre(t) * self.ReferentielProduit.get_tx_frais_gest_sin(self.produit())
         else: return 0
         
     def prime_valide(self, t):
+        """montant des primes versées par les valides
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des primes versées par les valides à t
+        """
         produit = self.produit()
         if t<=self.duree_restante(0):
             return self.vecteur_des_effectifs_at_t(t)[0] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
         else: return 0
     
     def prime_inc(self, t):
+        """montant des primes versées par les effectifs au incapacités
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des primes versées par les effectifs en incapacités à t
+        """
         produit = self.produit()
         if t<=self.duree_restante(0):
             return self.vecteur_des_effectifs_at_t(t)[3] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
         else: return 0
         
     def prime_ch(self, t):
+        """montant des primes versées par les effectifs au chomages
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des primes versées par les effectifs au chomages à t
+        """
         produit = self.produit()
         if t<=self.duree_restante(0):
             return self.vecteur_des_effectifs_at_t(t)[2] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
         else: return 0
         
     def total_prime(self, t):
+        """montant total des primes versées par les effectifs.
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant total des primes versées par les effectifs.
+        """
         if t<=self.duree_restante(0):
             return self.prime_valide(t) + self.prime_inc(t) + self.prime_ch(t)
         else: return 0
         
     def frais_administrations(self, t):
+        """montant  des frais d'administrations à t.
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des frais d'administrations à t.
+        """
         if t<=self.duree_restante(0):
             return self.ReferentielProduit.get_tx_frais_admin(self.produit()) * self.total_prime(t)
         else: return 0
         
     def frais_acquisitions(self, t):
+        """montant  des frais d'acquisisiton à t.
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des frais d'acquisisiton à t.
+        """
         if t<=self.duree_restante(0):
             return self.ReferentielProduit.get_tx_frais_acq(self.produit()) * self.total_prime(t)
         else: return 0
         
     def frais_commissions(self, t):
+        """montant des frais de commission à t.
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des frais de commission à t.
+        """
         if t<=self.duree_restante(0):
             return self.ReferentielProduit.get_tx_comm(self.produit()) * self.total_prime(t)
         else: return 0
         
     def total_frais_primes(self, t):
+        """montant total des frais à t.
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant total des frais à t.
+        """
         if t<=self.duree_restante(0):
             return self.frais_administrations(t) + self.frais_acquisitions(t) + self.frais_commissions(t)
         else: return 0
     
     @functools.lru_cache
     def pm_inc_clo(self, t):
+        """montant des pm oslr inc à la cloture de t
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des pm oslr inc à la cloture de t
+        """
         if t<=self.duree_restante(0):
             return self.pmxinc(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, (35-self.anciennete_contrat_mois(t)), 0) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inc()
         else: return 0
     
     def pm_inc_ouv(self, t):
+        """montant des pm oslr inc à l'ouverture de t
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des pm oslr inc à l'ouverture de t
+        """
         if t==0:
             return self.pm_inc_clo(0)
         else : return self.pm_inc_clo(t-1)
     
     def pm_cho_clo(self, t):
+        """montant des pm oslr cho à la cloture de t
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des pm oslr cho à la cloture de t
+        """
         if t<=self.duree_restante(0):
             return self.pmxcho(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0) * self.vecteur_des_effectifs_at_t(t)[2] * self.couv_ch()
         else: return 0
         
     def pm_cho_ouv(self, t):
+        """montant des pm oslr cho à la l'ouverture de t
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des pm oslr cho à la l'ouverture de t
+        """
         if t==0:
             return self.pm_cho_clo(0)
         else : return self.pm_cho_clo(t-1)
     
     def pm_inc_inv_clo(self, t):
+        """montant des pm oslr inc-inv à la cloture de t
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des pm oslr inc-inv à la cloture de t
+        """
         if t<=self.duree_restante(0):
             return self.pmxpot2(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0, self.crd(t)) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inv()
         else: return 0
         
     def pm_inc_inv_ouv(self, t):
+        """montant des pm oslr inc-inv à l'ouverture de t
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: montant des pm oslr inc-inv à l'ouverture de t
+        """
         if t==0:
             return self.pm_inc_inv_clo(0)
         else : return self.pm_inc_inv_clo(t-1)
