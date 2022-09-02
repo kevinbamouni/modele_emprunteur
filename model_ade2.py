@@ -503,6 +503,7 @@ class ADEFlux():
     def age_fin(self):
         return self.ModelPointRow.age_fin
 
+    @functools.lru_cache
     def ci(self):
         """
             retourne le Capital Initial du prêt
@@ -511,6 +512,7 @@ class ADEFlux():
         """
         return self.ModelPointRow.ci
 
+    @functools.lru_cache
     def crd(self, t):
         """
             retourne le Montant Restant dû du crédit juste après la mensualité versé à l'instant t
@@ -529,10 +531,11 @@ class ADEFlux():
 
     def taux_mensuel(self):
         return self.ModelPointRow.taux_mensuel
-
+    @functools.lru_cache
     def mensualite(self):
         return self.ModelPointRow.mensualite
 
+    @functools.lru_cache
     def produit(self):
         return self.ModelPointRow.produit
 
@@ -564,6 +567,7 @@ class ADEFlux():
         return self.PassageInval.nombre_passage_inval(age_entree, duration_incap)/self.MaintienIncap.nombre_maintien_incap(age_entree, duration_incap)
     
     ### Projection des effectifs
+    @functools.lru_cache
     def constitution_matrix_transitions(self, age_entree_etat, duration_etat_at_t, t):
         """Calcul de la matrice des probabilité de transitions pour les 6 états : 
         [VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE]    x   [VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE]
@@ -728,39 +732,49 @@ class ADEFlux():
             som2 = som2 + ((1 + taux) ^ -((i + 1) / 12)) * ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i + 1) * prov
         return ((som1 + som2) / (2 * l))
     
-    def prc_itt2_v2(self, agentree, D2, taux, crd, mensualite):
-        """_summary_
+    # def prc_itt2_v2(self, agentree, D2, taux, crd, mensualite):
+    #     """_summary_
 
-        Args:
-            agentree (int): _description_
-            D2 (int): _description_
-            taux (float): _description_
-            crd (float): _description_
-            mensualite (float): _description_
-        """
-        som = 0
-        for i in range(0,D2+1):
-            som = som + self.Incidence.prob_entree_incap(round(agentree + i / 12)) * (self.pmxinc(round(agentree + i / 12), 0, 0, D2, taux) * mensualite + self.pmxpot2(round(agentree + i / 12), 0, 0, D2, taux, crd)) * 0.0005 * ((1 + taux) ^ (-(i / 12)))
-            #lapse(lapse.matrix, caisse, contrat, floor((duration+i)/12)) )
-        return(som)
+    #     Args:
+    #         agentree (int): _description_
+    #         D2 (int): _description_
+    #         taux (float): _description_
+    #         crd (float): _description_
+    #         mensualite (float): _description_
+    #     """
+    #     som = 0
+    #     for i in range(0,D2+1):
+    #         som = som + self.Incidence.prob_entree_incap(round(agentree + i / 12)) * (self.pmxinc(round(agentree + i / 12), 0, 0, D2, taux) * mensualite + self.pmxpot2(round(agentree + i / 12), 0, 0, D2, taux, crd)) * 0.0005 * ((1 + taux) ^ (-(i / 12)))
+    #         #lapse(lapse.matrix, caisse, contrat, floor((duration+i)/12)) )
+    #     return(som)
     
-    def prc_inc_inc_clot(self, t, tech_int_rate=0):
-        eng_assureur = 0
-        eng_assure = 0
-        duree_restante = self.duree_restante(t)
-        age_actuel = self.age_actuel(t)
-        sexe = self.sexe()
-        produit = self.produit()
-        anc_contrat_mois = self.anciennete_contrat_mois(t)
-        for i in range(0, duree_restante+1):
-            eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) \
-            * self.Incidence.prob_entree_incap(round(age_actuel)) / 12 * (self.mensualite() * self.pmxinc(round(age_actuel+i), 0, 0, (35-anc_contrat_mois+i), 0))
-        
-        for i in range(0, duree_restante+1):
-            eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_inc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
-        return max(eng_assureur-eng_assure, 0)
+    @functools.lru_cache
+    def prc_inc_clot(self, t, tech_int_rate=0):
+        if t> self.duree_restante(0) or t<0:
+            return 0
+        else:
+            eng_assureur = 0
+            eng_assure = 0
+            duree_restante = self.duree_restante(t)
+            age_actuel = self.age_actuel(t)
+            sexe = self.sexe()
+            produit = self.produit()
+            anc_contrat_mois = self.anciennete_contrat_mois(t)
+            for i in range(0, duree_restante+1):
+                eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) \
+                * self.Incidence.prob_entree_incap(round(age_actuel)) / 12 * (self.mensualite() * self.pmxinc(round(age_actuel+i), 0, 0, (35-anc_contrat_mois+i), 0))
             
+            for i in range(0, duree_restante+1):
+                eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_inc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
+            return max(eng_assureur-eng_assure, 0) * self.couv_inc()
     
+    @functools.lru_cache
+    def prc_inc_ouv(self, t, tech_int_rate=0):
+        if t==0:
+            return self.prc_inc_clot(0, tech_int_rate)
+        else : return self.prc_inc_clot(t-1, tech_int_rate)
+    
+    @functools.lru_cache
     def prc_dc_clot(self, t, tech_int_rate=0):
         """provision pour risk croissant du risque DC
 
@@ -771,18 +785,21 @@ class ADEFlux():
         Returns:
             float: provision pour risk croissant
         """
-        eng_assureur = 0
-        eng_assure = 0
-        duree_restante = self.duree_restante(t)
-        age_actuel = self.age_actuel(t)
-        sexe = self.sexe()
-        produit = self.produit()
-        for i in range(0, duree_restante+1):
-            eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.Mortalite.prob_dc(sexe, round(age_actuel+i)) / 12 * self.crd(t+i) * pow((1+tech_int_rate), (-i-0.5))
-        
-        for i in range(0, duree_restante+1):
-            eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_dc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
-        return max(eng_assureur-eng_assure, 0)
+        if t> self.duree_restante(0) or t<0:
+            return 0
+        else:
+            eng_assureur = 0
+            eng_assure = 0
+            duree_restante = self.duree_restante(t)
+            age_actuel = self.age_actuel(t)
+            sexe = self.sexe()
+            produit = self.produit()
+            for i in range(0, duree_restante+1):
+                eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.Mortalite.prob_dc(sexe, round(age_actuel+i)) / 12 * self.crd(t+i) * pow((1+tech_int_rate), (-i-0.5))
+            
+            for i in range(0, duree_restante+1):
+                eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_dc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
+            return max(eng_assureur-eng_assure, 0) * self.couv_dc()
     
     @functools.lru_cache
     def prc_dc_ouv(self, t, tech_int_rate=0):
@@ -921,6 +938,11 @@ class ADEFlux():
         return df
     
     def calcul_des_flux_du_mp(self):
+        """"Retourne Projection du model point à la fin du contrat et ou des garanties avec les flux financiers
+
+        Returns:
+            DataFrame: Projection du model point à la fin du contrat et ou des garanties avec les flux financiers
+        """
         df = self.projection_des_effectif_du_mp()
         produit = self.produit()
         # flux sinistres et frais gestion sinistres
@@ -1033,7 +1055,7 @@ class ADEFlux():
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
-            return self.vecteur_des_effectifs_at_t(t)[0] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
+            return self.vecteur_des_effectifs_at_t(t)[0] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_inv()
         else: return 0
     
     def prime_inc(self, t):
@@ -1047,7 +1069,7 @@ class ADEFlux():
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
-            return self.vecteur_des_effectifs_at_t(t)[3] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
+            return self.vecteur_des_effectifs_at_t(t)[3] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_inc()
         else: return 0
         
     def prime_ch(self, t):
@@ -1061,7 +1083,7 @@ class ADEFlux():
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
-            return self.vecteur_des_effectifs_at_t(t)[2] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci()
+            return self.vecteur_des_effectifs_at_t(t)[2] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_ch()
         else: return 0
         
     def total_prime(self, t):
@@ -1177,32 +1199,123 @@ class ADEFlux():
             return self.pm_cho_clo(0)
         else : return self.pm_cho_clo(t-1)
     
-    def pm_inc_inv_clo(self, t):
-        """montant des pm oslr inc-inv à la cloture de t
+    # def pm_inc_inv_clo(self, t):
+    #     """montant des pm oslr inc-inv à la cloture de t
+
+    #     Args:
+    #         t (int): temps t
+
+    #     Returns:
+    #         float: montant des pm oslr inc-inv à la cloture de t
+    #     """
+    #     if t<=self.duree_restante(0):
+    #         return self.pmxpot2(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0, self.crd(t)) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inv()
+    #     else: return 0
+        
+    # def pm_inc_inv_ouv(self, t):
+    #     """montant des pm oslr inc-inv à l'ouverture de t
+
+    #     Args:
+    #         t (int): temps t
+
+    #     Returns:
+    #         float: montant des pm oslr inc-inv à l'ouverture de t
+    #     """
+    #     if t==0:
+    #         return self.pm_inc_inv_clo(0)
+    #     else : return self.pm_inc_inv_clo(t-1)
+        
+    def total_provisions_clot(self, t):
+        """retourne le total des provisions à la cloture
 
         Args:
             t (int): temps t
 
         Returns:
-            float: montant des pm oslr inc-inv à la cloture de t
+            float: retourne le total des provisions à la cloture
         """
         if t<=self.duree_restante(0):
-            return self.pmxpot2(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0, self.crd(t)) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inv()
+            return self.pm_inc_clo(t) + self.pm_cho_clo(t) + self.prc_inc_clot(t) + self.prc_dc_clot(t)
+        else: return 0
+    
+    def total_provisions_ouv(self, t):
+        """reoturne le total des provisions à l'ouverture
+
+        Args:
+            t (int): temps
+
+        Returns:
+            float: total des provisions à l'ouverture
+        """
+        if t<=self.duree_restante(0):
+            return self.pm_inc_ouv(t) + self.pm_cho_ouv(t) + self.prc_inc_ouv(t) + self.prc_dc_ouv(t)
         else: return 0
         
-    def pm_inc_inv_ouv(self, t):
-        """montant des pm oslr inc-inv à l'ouverture de t
+    def production_financiere(self, t):
+        """retourne la production financière moyenne entre l'ouverture et la cloture
 
         Args:
             t (int): temps t
 
         Returns:
-            float: montant des pm oslr inc-inv à l'ouverture de t
+            float: retourne la production financière moyenne entre l'ouverture et la cloture
         """
-        if t==0:
-            return self.pm_inc_inv_clo(0)
-        else : return self.pm_inc_inv_clo(t-1)
+        if t> self.duree_restante(0):
+            return 0
+        else:
+            return (self.total_provisions_clot(t) + self.total_provisions_ouv(t)) / 2 * self.ReferentielProduit.get_tx_production_financiere(self.produit())
         
+    def resultat_technique(self, t):
+        """retourne le resultat technique : primes - frais - sinistres - les augmentations de pm entre l'ouv et la cloture
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            _type_: _description_
+        """
+        if t> self.duree_restante(0): 
+            return 0
+        else:
+            return self.total_prime(t) - (self.total_frais_primes(t) + self.frais_gest_sin(t)) - self.total_sinistre(t) \
+                                    - (self.pm_inc_clo(t)-self.pm_inc_ouv(t)) \
+                                    - (self.pm_cho_clo(t)-self.pm_cho_ouv(t)) \
+                                    - (self.prc_dc_clot(t)-self.prc_dc_ouv(t)) \
+                                    - (self.prc_inc_clot(t)-self.prc_inc_ouv(t))
+                                    
+    def participation_benef_ass(self, t):
+        """participation au benef assureur
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: participation au benef assureur
+        """
+        if t> self.duree_restante(0):
+            return 0
+        else:
+            return self.resultat_technique(t) * self.ReferentielProduit.get_tx_profit_sharing_assureur(self.produit())
+    
+    def participation_benef_part(self, t):
+        """participation au benef partenaire
+
+        Args:
+            t (int): temps t
+
+        Returns:
+            float: participation au benef partenaire
+        """
+        if t> self.duree_restante(0):
+            return 0
+        else:
+            return self.resultat_technique(t) * self.ReferentielProduit.get_tx_profit_sharing_partenaire(self.produit())
+    
+    def resultat_assureur(self, t):
+        if t> self.duree_restante(0):
+            return 0
+        else:
+            return self.resultat_technique(t)+self.participation_benef_ass(t)+self.production_financiere(t)
         
 if __name__=="__main__":
     #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
