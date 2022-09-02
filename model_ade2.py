@@ -13,65 +13,6 @@ import functools
 import math
 import numpy_financial as npf
 
-class FunctionMemoizer:
-    """
-     Decorateur de Class pour implementation de Memoization :
-         https://python-course.eu/advanced-python/memoization-decorators.php
-    """
-    def __init__(self, fn):
-        self.fn = fn
-        self.memo = {}
-
-    def __call__(self, *args, **kwargs):
-        if args not in self.memo:
-            self.memo[args] = self.fn(*args, **kwargs)
-        return self.memo[args]
-
-def MemoizeFunction(fn):
-    """
-    Decorateur de Fonction pour implementation de Memoization :
-        https://python-course.eu/advanced-python/memoization-decorators.php
-
-    Parameters
-    ----------
-    f : TYPE
-        DESCRIPTION.
-
-    Returns
-    -------
-    TYPE
-        DESCRIPTION.
-
-    """
-    memo = {}
-    def helper(*args):
-        if args not in memo:
-            memo[args] = fn(*args)
-        return memo[args]
-    return helper
-
-def caching(func):
-    """Keep a cache of previous function calls"""
-    @functools.wraps(func)
-    def wrapper_cache(*args, **kwargs):
-        cache_key = args + tuple(kwargs.items())
-        if cache_key not in wrapper_cache.cache:
-            wrapper_cache.cache[cache_key] = func(*args, **kwargs)
-        return wrapper_cache.cache[cache_key]
-    wrapper_cache.cache = dict()
-    return wrapper_cache
-
-class cachingc:
-    def __init__(self, fn):
-        self.fn = fn
-        self.cache = {}
-
-    def __call__(self, *args, **kwargs):
-        cache_key = args + tuple(kwargs.items())
-        if cache_key not in self.cache:
-            self.cache[cache_key] = self.fn(*args, **kwargs)
-        return self.cache[cache_key]
-
 class TblProd():
     def __init__(self, tblProduct) -> None:
         self.TblProduct = tblProduct
@@ -112,15 +53,46 @@ class LoiMaintienChomage():
     """
     def __init__(self, maintienCh) -> None:
         self.MaintienCh = maintienCh
+        
+    def max_age_pass_ch(self):
+        """age max de la loi d'incidence
+
+        Returns:
+            int: age max de la loi d'incidence
+        """
+        return max(self.MaintienCh["Age_Anciennete"])
+    
+    def max_duration_pass_ch(self):
+        return self.MaintienCh.shape[1]-2
 
     def  nombre_maintien_chomage(self, age_entree, anciennete_chomage):
+        """_summary_
+
+        Args:
+            age_entree (int): age entree en chomage
+            anciennete_chomage (_type_): duration en chomage
+
+        Returns:
+            int: nombre en chomage
+        """
         try:
             return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(anciennete_chomage)].values[0]
         except KeyError:
             return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(self.MaintienCh.shape[1]-2)].values[0]
 
     def prob_passage_ch_ch(self, age, anciennete_chomage):
-        return self.nombre_maintien_chomage(age, anciennete_chomage+1)/self.nombre_maintien_chomage(age, anciennete_chomage)
+        """proba de rester en chomage
+
+        Args:
+            age (int): age entre chomage
+            anciennete_chomage (int): duration en chomage
+
+        Returns:
+            float: proba rester en chomage
+        """
+        if age<=self.max_age_pass_ch() and (anciennete_chomage+1)<=self.max_duration_pass_ch():
+            return self.nombre_maintien_chomage(age, anciennete_chomage+1)/self.nombre_maintien_chomage(age, anciennete_chomage)
+        else: return 0
 
 class LoiMaintienIncapacite():
     """
@@ -128,15 +100,46 @@ class LoiMaintienIncapacite():
     """
     def __init__(self, maintienIncap) -> None:
         self.MaintienIncap = maintienIncap
+        
+    def max_age_pass_inc(self):
+        """age max de la loi d'incidence
+
+        Returns:
+            int: age max de la loi d'incidence
+        """
+        return max(self.MaintienIncap["Age_Anciennete"])
+    
+    def max_duration_pass_inc(self):
+        return self.MaintienIncap.shape[1]-2
 
     def nombre_maintien_incap(self, age_entree, anciennete_incap):
+        """_summary_
+
+        Args:
+            age_entree (int): age entree en incap
+            anciennete_incap (int): duraiton en incap
+
+        Returns:
+            int: effectif en incap
+        """
         try:
             return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(anciennete_incap)].values[0]
         except KeyError:
             return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(self.MaintienIncap.shape[1]-2)].values[0]
 
     def prob_passage_inc_inc(self, age, anciennete_inc):
-        return self.nombre_maintien_incap(age, anciennete_inc+1)/self.nombre_maintien_incap(age, anciennete_inc)
+        """proba de rester en incap
+
+        Args:
+            age (int): age entree en incap
+            anciennete_inc (int): duration en incap
+
+        Returns:
+            float: proba de rester en incap
+        """
+        if age<=self.max_age_pass_inc() and (anciennete_inc+1)<=self.max_duration_pass_inc():
+            return self.nombre_maintien_incap(age, anciennete_inc+1)/self.nombre_maintien_incap(age, anciennete_inc)
+        else: return 0
 
 class LoiPasssageInvalidite():
     """
@@ -144,8 +147,28 @@ class LoiPasssageInvalidite():
     """
     def __init__(self, passageInval) -> None:
         self.PassageInval = passageInval
+        
+    def max_age_pass_inval(self):
+        """age max de la loi d'incidence
+
+        Returns:
+            int: age max de la loi d'incidence
+        """
+        return max(self.PassageInval["Age_Anciennete"])
+    
+    def max_duration_pass_inval(self):
+        return self.PassageInval.shape[1]-2
 
     def nombre_passage_inval(self, age_entree, anciennete_incap):
+        """_summary_
+
+        Args:
+            age_entree (int): age entree en inval
+            anciennete_incap (int): duration en inval
+
+        Returns:
+            int: nombre en inval
+        """
         try:
             return self.PassageInval.loc[self.PassageInval["Age_Anciennete"]==math.floor(age_entree),str(anciennete_incap)].values[0]
         except KeyError:
@@ -158,21 +181,50 @@ class LoiIncidence():
         self.Incidence = incidence
 
     def max_age_incidence(self):
+        """age max de la loi d'incidence
+
+        Returns:
+            int: age max de la loi d'incidence
+        """
         return max(self.Incidence["age_x"])
 
     def prob_entree_incap(self, age_actuel):
+        """proba pour un valide d'entré en incap
+
+        Args:
+            age_actuel (int): age actuel
+
+        Returns:
+            flocat: proba pour un valide d'entré en incap
+        """
         if age_actuel<self.max_age_incidence():
             return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_incap"].values[0]
         else:
             return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_incap"].values[0]
 
     def prob_entree_chomage(self, age_actuel):
+        """proba pour un valide d'entré en chomage
+
+        Args:
+            age_actuel (int): age actuel
+
+        Returns:
+            flocat: proba pour un valide d'entré en chomage
+        """
         if age_actuel < self.max_age_incidence():
             return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_chomage"].values[0]
         else:
             return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_chomage"].values[0]
 
     def prob_entree_inval(self, age_actuel):
+        """proba pour un valide d'entré en inval
+
+        Args:
+            age_actuel (int): age actuel
+
+        Returns:
+            flocat: proba pour un valide d'entré en inval
+        """
         if age_actuel<self.max_age_incidence():
             return self.Incidence.loc[self.Incidence["age_x"]==math.floor(age_actuel), "Incidence_en_inval"].values[0]
         else:
@@ -187,9 +239,19 @@ class LoiMortalite():
         self.tech_int_rate = tech_int_rate
 
     def max_age_mortality_th(self):
+        """max age mortalite TH
+
+        Returns:
+            int: max age mortalite TH
+        """
         return max(self.MortaliteTH["age_x"])
 
     def max_age_mortality_tf(self):
+        """max age mortalite TF
+
+        Returns:
+            int: max age mortalite TF
+        """
         return max(self.MortaliteTF["age_x"])
 
     def prob_dc(self, sexe, age_actuel):
@@ -422,12 +484,21 @@ class LoiRachat():
         self.Lapse = lapse
 
     def prob_rachat(self, produit, anciennete_contrat_mois):
+        """probabilité de rachat
+
+        Args:
+            produit (char): product name or product code
+            anciennete_contrat_mois (int): duration du contrat en mois
+
+        Returns:
+            float: probabilité de rachat du contrat
+        """
         try:
             return self.Lapse.loc[self.Lapse["produit"]==produit, str(anciennete_contrat_mois)].values[0]
         except KeyError:
             return self.Lapse.loc[self.Lapse["produit"]==produit, str(self.Lapse.shape[1]-2)].values[0]
 
-class ADEFlux():
+class ADECashFLowModel():
     """_summary_
         Class projection to generate projection objects
         Modele de markov :
@@ -452,23 +523,41 @@ class ADEFlux():
 
     def __init__(self, modelPointRow) -> None:
         self.ModelPointRow = modelPointRow
+    
+    ModelConfig = {}
+    Incidence = LoiIncidence(pd.DataFrame())
+    Lapse = LoiRachat(pd.DataFrame())
+    MaintienCh = LoiMaintienChomage(pd.DataFrame())
+    MaintienIncap = LoiMaintienIncapacite(pd.DataFrame())
+    Mortalite = LoiMortalite(pd.DataFrame(), pd.DataFrame())
+    PassageInval = LoiPasssageInvalidite(pd.DataFrame())
+    ReferentielProduit = TblProd(pd.DataFrame())
+    
+    @classmethod
+    def config(cls, inputPathDict):
+        """Configure the model inputs :
+            dict = {'input 1': 'path_to_input1',
+                    'input 2': 'path_to_input2',
+                    ...}
 
-    IncidenceData = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//INCIDENCE.csv', sep=";")
-    LapseData = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//LAPSE.csv', sep=";")
-    MaintienChData = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MAINTIEN_CH.csv', sep=";")
-    MaintienIncapData = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MAINTIEN_INCAP.csv', sep=";")
-    MortaliteTHData = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MORTALITE_TF0002.csv', sep=";")
-    MortaliteTFData = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MORTALITE_TH0002.csv', sep=";")
-    PassageInvalData = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//PASSAGE_INVAL.csv', sep=";")
-    referentielProduit = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//TBL_PROD.csv', sep=";")
-
-    Incidence = LoiIncidence(IncidenceData)
-    Lapse = LoiRachat(LapseData)
-    MaintienCh = LoiMaintienChomage(MaintienChData)
-    MaintienIncap = LoiMaintienIncapacite(MaintienIncapData)
-    Mortalite = LoiMortalite(MortaliteTHData, MortaliteTFData)
-    PassageInval = LoiPasssageInvalidite(PassageInvalData)
-    ReferentielProduit = TblProd(referentielProduit)
+        Args:
+            inputPathDict (dict): configuration information
+        """
+        cls.ModelConfig = inputPathDict
+        cls.Incidence = LoiIncidence(pd.read_csv(inputPathDict['IncidenceData'], sep=";"))
+        cls.Lapse = LoiRachat(pd.read_csv(inputPathDict['LapseData'], sep=";"))
+        cls.MaintienCh = LoiMaintienChomage(pd.read_csv(inputPathDict['MaintienChData'], sep=";"))
+        cls.MaintienIncap = LoiMaintienIncapacite(pd.read_csv(inputPathDict['MaintienIncapData'], sep=";"))
+        cls.Mortalite = LoiMortalite(pd.read_csv(inputPathDict['MortaliteTHData'], sep=";"), pd.read_csv(inputPathDict['MortaliteTFData'], sep=";"))
+        cls.PassageInval = LoiPasssageInvalidite(pd.read_csv(inputPathDict['PassageInvalData'], sep=";"))
+        cls.ReferentielProduit = TblProd(pd.read_csv(inputPathDict['referentielProduit'], sep=";"))
+    
+    @classmethod
+    def printconfig(cls):
+        """Print the model configuration
+        """
+        for q, a in cls.ModelConfig.items():
+            print(' {0} :  {1}.'.format(q, a))
 
     def mp_id(self):
         return self.ModelPointRow.mp_id
@@ -481,7 +570,7 @@ class ADEFlux():
 
     @functools.lru_cache
     def age_actuel(self, t):
-        return self.ModelPointRow.age_actuel + t/12
+        return math.floor(self.ModelPointRow.age_actuel + t/12)
 
     def age_souscription_annee(self):
         return self.ModelPointRow.age_souscription_annee
@@ -546,10 +635,14 @@ class ADEFlux():
         return self.ModelPointRow.nb_contrats
     
     def age_entree_sinistre(self, t):
-        return self.age_actuel(t) - self.duree_sinistre(t)
+        if self.etat()=='v':
+            return self.age_actuel(t)
+        else : return math.floor(self.age_actuel(t) - self.duree_sinistre(t)/12)
 
     @functools.lru_cache
     def duree_sinistre(self,t):
+        if self.etat()=='v':
+            return 0
         return self.ModelPointRow.duree_sinistre + t
     
     ### Hypothèse demographique
@@ -564,7 +657,10 @@ class ADEFlux():
         Returns:
             float: proba de passer de inc vers inv
         """
-        return self.PassageInval.nombre_passage_inval(age_entree, duration_incap)/self.MaintienIncap.nombre_maintien_incap(age_entree, duration_incap)
+        if age_entree>ADECashFLowModel.PassageInval.max_age_pass_inval() or duration_incap>ADECashFLowModel.PassageInval.max_duration_pass_inval():
+            return 0
+        else:
+            return ADECashFLowModel.PassageInval.nombre_passage_inval(age_entree, duration_incap)/ADECashFLowModel.MaintienIncap.nombre_maintien_incap(age_entree, duration_incap)
     
     ### Projection des effectifs
     @functools.lru_cache
@@ -590,21 +686,21 @@ class ADEFlux():
         anc_contrat_mois = self.anciennete_contrat_mois(t)
         mat = np.zeros((6, 6))
         # From valide to ...
-        mat[0,1] = ADEFlux.Mortalite.prob_dc(sex, age_actuel)/12
-        mat[0,2] = ADEFlux.Incidence.prob_entree_chomage(age_actuel)/12
-        mat[0,3] = ADEFlux.Incidence.prob_entree_incap(age_actuel)/12
-        mat[0,4] = ADEFlux.Incidence.prob_entree_inval(age_actuel)/12
-        mat[0,5] = ADEFlux.Lapse.prob_rachat(produit , anc_contrat_mois)
+        mat[0,1] = ADECashFLowModel.Mortalite.prob_dc(sex, age_actuel)/12
+        mat[0,2] = ADECashFLowModel.Incidence.prob_entree_chomage(age_actuel)/12
+        mat[0,3] = ADECashFLowModel.Incidence.prob_entree_incap(age_actuel)/12
+        mat[0,4] = ADECashFLowModel.Incidence.prob_entree_inval(age_actuel)/12
+        mat[0,5] = ADECashFLowModel.Lapse.prob_rachat(produit , anc_contrat_mois)
         mat[0,0] = 1 - np.sum(mat[0,:])
         # From DC to ...
         mat[1,1] = 0
         # From Chomage to ...
-        mat[2,1] = ADEFlux.Mortalite.prob_dc(sex, age_actuel)/12
-        mat[2,2] = ADEFlux.MaintienCh.prob_passage_ch_ch(age_entree_etat, duration_etat_at_t)
+        mat[2,1] = ADECashFLowModel.Mortalite.prob_dc(sex, age_actuel)/12
+        mat[2,2] = ADECashFLowModel.MaintienCh.prob_passage_ch_ch(age_entree_etat, duration_etat_at_t)
         mat[2,0] = 1 - np.sum(mat[2,:])
         # From incap to ...
-        mat[3,1] = ADEFlux.Mortalite.prob_dc(sex, age_actuel)/12
-        mat[3,3] = ADEFlux.MaintienIncap.prob_passage_inc_inc(age_entree_etat, duration_etat_at_t)
+        mat[3,1] = ADECashFLowModel.Mortalite.prob_dc(sex, age_actuel)/12
+        mat[3,3] = ADECashFLowModel.MaintienIncap.prob_passage_inc_inc(age_entree_etat, duration_etat_at_t)
         mat[3,4] = self.prob_passage_inc_inv(age_entree_etat, duration_etat_at_t)
         mat[3,0] = 1 - np.sum(mat[3,:])
         # From invalidite to ...
@@ -684,10 +780,10 @@ class ADEFlux():
         """
         som1 = 0
         som2 = 0
-        l = ADEFlux.MaintienCh.nombre_maintien_chomage(age_entre, dure_ecoulee)
+        l = ADECashFLowModel.MaintienCh.nombre_maintien_chomage(age_entre, dure_ecoulee)
         for i in range(D1,D2):
-            som1 = som1 + ((1 + taux_actu)^(-(i / 12))) * ADEFlux.MaintienCh.nombre_maintien_chomage(age_entre, dure_ecoulee + i)
-            som2 = som2 + ((1 + taux_actu)^(-((i + 1) / 12))) * ADEFlux.MaintienCh.nombre_maintien_chomage(age_entre, dure_ecoulee + i + 1)
+            som1 = som1 + ((1 + taux_actu)^(-(i / 12))) * ADECashFLowModel.MaintienCh.nombre_maintien_chomage(age_entre, dure_ecoulee + i)
+            som2 = som2 + ((1 + taux_actu)^(-((i + 1) / 12))) * ADECashFLowModel.MaintienCh.nombre_maintien_chomage(age_entre, dure_ecoulee + i + 1)
         return((som1 + som2) / (2 * l))
 
     def pmxinc(self, agentree, durecoulee, D1, D2, taux_actu):
@@ -704,10 +800,10 @@ class ADEFlux():
             _type_: _description_
         """
         som1 = som2 = 0
-        l = ADEFlux.MaintienIncap.nombre_maintien_incap(agentree, durecoulee)
+        l = ADECashFLowModel.MaintienIncap.nombre_maintien_incap(agentree, durecoulee)
         for i in range(D1,D2):
-            som1 = som1 + ((1 + taux_actu)^(-(i / 12))) * ADEFlux.MaintienIncap.nombre_maintien_incap(agentree, durecoulee + i)
-            som2 = som2 + ((1 + taux_actu)^(-((i + 1) / 12))) * ADEFlux.MaintienIncap.nombre_maintien_incap(agentree, durecoulee + i + 1)
+            som1 = som1 + ((1 + taux_actu)^(-(i / 12))) * ADECashFLowModel.MaintienIncap.nombre_maintien_incap(agentree, durecoulee + i)
+            som2 = som2 + ((1 + taux_actu)^(-((i + 1) / 12))) * ADECashFLowModel.MaintienIncap.nombre_maintien_incap(agentree, durecoulee + i + 1)
         return ((som1 + som2) / (2 * l))
 
     def pmxpot2(self, agentree, durecoulee, D1, D2, taux, crd):
@@ -725,11 +821,11 @@ class ADEFlux():
             float: _description_
         """
         som1 = som2 = 0
-        l = ADEFlux.MaintienIncap.nombre_maintien_incap(agentree, durecoulee)
+        l = ADECashFLowModel.MaintienIncap.nombre_maintien_incap(agentree, durecoulee)
         prov = crd
         for i in range(D1,D2):
-            som1 = som1 + ((1 + taux) ^ -(i / 12)) * ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i) * prov
-            som2 = som2 + ((1 + taux) ^ -((i + 1) / 12)) * ADEFlux.PassageInval.nombre_passage_inval(agentree, durecoulee + i + 1) * prov
+            som1 = som1 + ((1 + taux) ^ -(i / 12)) * ADECashFLowModel.PassageInval.nombre_passage_inval(agentree, durecoulee + i) * prov
+            som2 = som2 + ((1 + taux) ^ -((i + 1) / 12)) * ADECashFLowModel.PassageInval.nombre_passage_inval(agentree, durecoulee + i + 1) * prov
         return ((som1 + som2) / (2 * l))
     
     # def prc_itt2_v2(self, agentree, D2, taux, crd, mensualite):
@@ -765,7 +861,7 @@ class ADEFlux():
                 * self.Incidence.prob_entree_incap(round(age_actuel)) / 12 * (self.mensualite() * self.pmxinc(round(age_actuel+i), 0, 0, (35-anc_contrat_mois+i), 0))
             
             for i in range(0, duree_restante+1):
-                eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_inc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
+                eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
             return max(eng_assureur-eng_assure, 0) * self.couv_inc()
     
     @functools.lru_cache
@@ -798,7 +894,7 @@ class ADEFlux():
                 eng_assureur = eng_assureur + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.Mortalite.prob_dc(sexe, round(age_actuel+i)) / 12 * self.crd(t+i) * pow((1+tech_int_rate), (-i-0.5))
             
             for i in range(0, duree_restante+1):
-                eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * self.ReferentielProduit.get_tx_prime_dc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
+                eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
             return max(eng_assureur-eng_assure, 0) * self.couv_dc()
     
     @functools.lru_cache
@@ -851,7 +947,7 @@ class ADEFlux():
         Returns:
             bool: 0 si non couv inv et 1 si couv inv
         """
-        if self.ReferentielProduit.get_tx_prime_inc(self.produit())==0:
+        if ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(self.produit())==0:
             return 0
         else:
             return 1
@@ -863,7 +959,7 @@ class ADEFlux():
         Returns:
             bool: 0 si non couv inc et 1 si couv inc
         """
-        if self.ReferentielProduit.get_tx_prime_inc(self.produit())==0:
+        if ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(self.produit())==0:
             return 0
         else:
             return 1
@@ -875,7 +971,7 @@ class ADEFlux():
         Returns:
             bool: 0 si non couv ch et 1 si couv ch
         """
-        if self.ReferentielProduit.get_tx_prime_chomage(self.produit())==0:
+        if ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(self.produit())==0:
             return 0
         else:
             return 1
@@ -887,7 +983,7 @@ class ADEFlux():
         Returns:
             bool: 0 si non couv dc et 1 si couv dc
         """
-        if self.ReferentielProduit.get_tx_prime_dc(self.produit())==0:
+        if ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(self.produit())==0:
             return 0
         else:
             return 1
@@ -951,16 +1047,16 @@ class ADEFlux():
         df["sinistre_ch"] = df.apply(lambda x: x.ch * x.mensualite * x.couv_ch if (x.anciennete_contrat_annee<=30) or (x.age_actuel<=65) else 0, axis=1)
         df["sinistre_inc"] = df.apply(lambda x: x.inc * x.mensualite * x.couv_inc if (x.anciennete_contrat_annee<=30) or (x.age_actuel<=65)  else 0, axis=1)
         df["total_sinistre"] = df["sinistre_dc"]+df["sinistre_inv"]+df["sinistre_ch"]+df["sinistre_inc"]
-        df["frais_gest_sin"] = df["total_sinistre"] * self.ReferentielProduit.get_tx_frais_gest_sin(produit)
+        df["frais_gest_sin"] = df["total_sinistre"] * ADECashFLowModel.ReferentielProduit.get_tx_frais_gest_sin(produit)
         # flux primes
-        df["primes_valides"] = df.v * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
-        df["primes_inc"] = df.inc * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
-        df["primes_ch"] = df.ch * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
+        df["primes_valides"] = df.v * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
+        df["primes_inc"] = df.inc * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
+        df["primes_ch"] = df.ch * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * df.ci
         df["total_primes"] = df["primes_valides"]+df["primes_inc"]+df["primes_ch"]
         #flux frais sur primes
-        df["frais_administrations"] = self.ReferentielProduit.get_tx_frais_admin(produit) * df["total_primes"]
-        df["frais_acquisitions"] = self.ReferentielProduit.get_tx_frais_acq(produit) * df["total_primes"]
-        df["frais_commissions"] = self.ReferentielProduit.get_tx_comm(produit) * df["total_primes"]
+        df["frais_administrations"] = ADECashFLowModel.ReferentielProduit.get_tx_frais_admin(produit) * df["total_primes"]
+        df["frais_acquisitions"] = ADECashFLowModel.ReferentielProduit.get_tx_frais_acq(produit) * df["total_primes"]
+        df["frais_commissions"] = ADECashFLowModel.ReferentielProduit.get_tx_comm(produit) * df["total_primes"]
         df["total_frais_primes"] = df["frais_commissions"] + df["frais_acquisitions"] + df["frais_administrations"]
         return df
     
@@ -1041,9 +1137,10 @@ class ADEFlux():
             float: Montant total sinistre dc+inv+inc+ch à t
         """
         if t<=self.duree_restante(0):
-            return self.total_sinistre(t) * self.ReferentielProduit.get_tx_frais_gest_sin(self.produit())
+            return self.total_sinistre(t) * ADECashFLowModel.ReferentielProduit.get_tx_frais_gest_sin(self.produit())
         else: return 0
-        
+    
+    @functools.lru_cache
     def prime_valide(self, t):
         """montant des primes versées par les valides
 
@@ -1055,9 +1152,10 @@ class ADEFlux():
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
-            return self.vecteur_des_effectifs_at_t(t)[0] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_inv()
+            return self.vecteur_des_effectifs_at_t(t)[0] * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_inv()
         else: return 0
     
+    @functools.lru_cache
     def prime_inc(self, t):
         """montant des primes versées par les effectifs au incapacités
 
@@ -1069,9 +1167,10 @@ class ADEFlux():
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
-            return self.vecteur_des_effectifs_at_t(t)[3] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_inc()
+            return self.vecteur_des_effectifs_at_t(t)[3] * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_inc()
         else: return 0
         
+    @functools.lru_cache
     def prime_ch(self, t):
         """montant des primes versées par les effectifs au chomages
 
@@ -1083,9 +1182,10 @@ class ADEFlux():
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
-            return self.vecteur_des_effectifs_at_t(t)[2] * (self.ReferentielProduit.get_tx_prime_chomage(produit)+self.ReferentielProduit.get_tx_prime_dc(produit)+self.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_ch()
+            return self.vecteur_des_effectifs_at_t(t)[2] * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_ch()
         else: return 0
-        
+    
+    @functools.lru_cache
     def total_prime(self, t):
         """montant total des primes versées par les effectifs.
         Args:
@@ -1098,6 +1198,7 @@ class ADEFlux():
             return self.prime_valide(t) + self.prime_inc(t) + self.prime_ch(t)
         else: return 0
         
+    @functools.lru_cache
     def frais_administrations(self, t):
         """montant  des frais d'administrations à t.
         Args:
@@ -1107,9 +1208,10 @@ class ADEFlux():
             float: montant des frais d'administrations à t.
         """
         if t<=self.duree_restante(0):
-            return self.ReferentielProduit.get_tx_frais_admin(self.produit()) * self.total_prime(t)
+            return ADECashFLowModel.ReferentielProduit.get_tx_frais_admin(self.produit()) * self.total_prime(t)
         else: return 0
-        
+    
+    @functools.lru_cache
     def frais_acquisitions(self, t):
         """montant  des frais d'acquisisiton à t.
         Args:
@@ -1119,9 +1221,10 @@ class ADEFlux():
             float: montant des frais d'acquisisiton à t.
         """
         if t<=self.duree_restante(0):
-            return self.ReferentielProduit.get_tx_frais_acq(self.produit()) * self.total_prime(t)
+            return ADECashFLowModel.ReferentielProduit.get_tx_frais_acq(self.produit()) * self.total_prime(t)
         else: return 0
-        
+    
+    @functools.lru_cache
     def frais_commissions(self, t):
         """montant des frais de commission à t.
         Args:
@@ -1131,9 +1234,10 @@ class ADEFlux():
             float: montant des frais de commission à t.
         """
         if t<=self.duree_restante(0):
-            return self.ReferentielProduit.get_tx_comm(self.produit()) * self.total_prime(t)
+            return ADECashFLowModel.ReferentielProduit.get_tx_comm(self.produit()) * self.total_prime(t)
         else: return 0
-        
+    
+    @functools.lru_cache
     def total_frais_primes(self, t):
         """montant total des frais à t.
         Args:
@@ -1160,6 +1264,7 @@ class ADEFlux():
             return self.pmxinc(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, (35-self.anciennete_contrat_mois(t)), 0) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inc()
         else: return 0
     
+    @functools.lru_cache
     def pm_inc_ouv(self, t):
         """montant des pm oslr inc à l'ouverture de t
 
@@ -1173,6 +1278,7 @@ class ADEFlux():
             return self.pm_inc_clo(0)
         else : return self.pm_inc_clo(t-1)
     
+    @functools.lru_cache
     def pm_cho_clo(self, t):
         """montant des pm oslr cho à la cloture de t
 
@@ -1185,7 +1291,8 @@ class ADEFlux():
         if t<=self.duree_restante(0):
             return self.pmxcho(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0) * self.vecteur_des_effectifs_at_t(t)[2] * self.couv_ch()
         else: return 0
-        
+    
+    @functools.lru_cache
     def pm_cho_ouv(self, t):
         """montant des pm oslr cho à la l'ouverture de t
 
@@ -1263,7 +1370,7 @@ class ADEFlux():
         if t> self.duree_restante(0):
             return 0
         else:
-            return (self.total_provisions_clot(t) + self.total_provisions_ouv(t)) / 2 * self.ReferentielProduit.get_tx_production_financiere(self.produit())
+            return (self.total_provisions_clot(t) + self.total_provisions_ouv(t)) / 2 * ADECashFLowModel.ReferentielProduit.get_tx_production_financiere(self.produit())
         
     def resultat_technique(self, t):
         """retourne le resultat technique : primes - frais - sinistres - les augmentations de pm entre l'ouv et la cloture
@@ -1295,7 +1402,7 @@ class ADEFlux():
         if t> self.duree_restante(0):
             return 0
         else:
-            return self.resultat_technique(t) * self.ReferentielProduit.get_tx_profit_sharing_assureur(self.produit())
+            return self.resultat_technique(t) * ADECashFLowModel.ReferentielProduit.get_tx_profit_sharing_assureur(self.produit())
     
     def participation_benef_part(self, t):
         """participation au benef partenaire
@@ -1304,12 +1411,12 @@ class ADEFlux():
             t (int): temps t
 
         Returns:
-            float: participation au benef partenaire
+            float: participation au benef partenaire 
         """
         if t> self.duree_restante(0):
             return 0
         else:
-            return self.resultat_technique(t) * self.ReferentielProduit.get_tx_profit_sharing_partenaire(self.produit())
+            return self.resultat_technique(t) * ADECashFLowModel.ReferentielProduit.get_tx_profit_sharing_partenaire(self.produit())
     
     def resultat_assureur(self, t):
         if t> self.duree_restante(0):
@@ -1317,8 +1424,91 @@ class ADEFlux():
         else:
             return self.resultat_technique(t)+self.participation_benef_ass(t)+self.production_financiere(t)
         
+    def full_cash_flow_projection(self):
+        """Projection du model point à la fin du contrat et ou des garanties
+
+        Returns:
+            DataFrame: variables du mp projetées dans le temps
+        """
+        ultim = self.duree_restante(0)
+        df = pd.DataFrame({'time':[t for t in range(ultim)],
+                           'mp_id':[self.mp_id() for t in range(ultim)],
+                           'sexe':[self.sexe() for t in range(ultim)],
+                           'etat':[self.etat() for t in range(ultim)],
+                           'age_actuel':[self.age_actuel(t)  for t in range(ultim)],
+                           'age_souscription_annee':[self.age_souscription_annee() for t in range(ultim)],
+                           'annee_souscription':[self.annee_souscription() for t in range(ultim)],
+                           'anciennete_contrat_annee':[self.anciennete_contrat_annee(t) for t in range(ultim)],
+                           'anciennete_contrat_mois':[self.anciennete_contrat_mois(t) for t in range(ultim)],
+                           'duree_pret':[self.duree_pret() for t in range(ultim)],
+                           'age_fin':[self.age_fin() for t in range(ultim)],
+                           'ci':[self.ci() for t in range(ultim)],
+                           'crd':[self.crd(t)  for t in range(ultim)],
+                           'duree_restante':[self.duree_restante(t) for t in range(ultim)],
+                           'taux_nominal':[self.taux_nominal() for t in range(ultim)],
+                           'taux_mensuel':[self.taux_mensuel() for t in range(ultim)],
+                           'mensualite':[self.mensualite() for t in range(ultim)],
+                           'produit':[self.produit() for t in range(ultim)],
+                           'distribution_channel':[self.distribution_channel() for t in range(ultim)],
+                           'nb_contrats':[np.sum(self.vecteur_des_effectifs_at_t(t)) for t in range(ultim)],
+                           'duree_sinistre':[self.duree_sinistre(t) for t in range(ultim)],
+                           'v':[self.vecteur_des_effectifs_at_t(t)[0] for t in range(ultim)],
+                           'dc':[self.vecteur_des_effectifs_at_t(t)[1] for t in range(ultim)],
+                           'ch':[self.vecteur_des_effectifs_at_t(t)[2] for t in range(ultim)],
+                           'inc':[self.vecteur_des_effectifs_at_t(t)[3] for t in range(ultim)],
+                           'inv':[self.vecteur_des_effectifs_at_t(t)[4] for t in range(ultim)],
+                           'lps':[self.vecteur_des_effectifs_at_t(t)[5] for t in range(ultim)],
+                           'crd':[self.crd(t) for t in range(ultim)],
+                           'couv_dc':[self.couv_dc() for t in range(ultim)],
+                           'couv_inv':[self.couv_inv() for t in range(ultim)],
+                           'couv_inc':[self.couv_inc() for t in range(ultim)],
+                           'couv_ch':[self.couv_ch() for t in range(ultim)],
+                           'prime_valide':[self.prime_valide(t) for t in range(ultim)],
+                           'prime_inc':[self.prime_inc(t) for t in range(ultim)],
+                           'prime_ch':[self.prime_ch(t) for t in range(ultim)],
+                           'total_prime':[self.total_prime(t) for t in range(ultim)],
+                           'frai_acq':[self.frais_acquisitions(t) for t in range(ultim)],
+                           'frais_admin':[self.frais_administrations(t) for t in range(ultim)],
+                           'frais_commissions':[self.frais_commissions(t) for t in range(ultim)],
+                           'total_frais_primes':[self.total_frais_primes(t) for t in range(ultim)],
+                           'sinistre_dc':[self.sinistre_dc(t) for t in range(ultim)],
+                           'sinistre_inc':[self.sinistre_inc(t) for t in range(ultim)],
+                           'sinistre_ch':[self.sinistre_ch(t) for t in range(ultim)],
+                           'sinistre_inv':[self.sinistre_inv(t) for t in range(ultim)],
+                           'sinistre_total':[self.total_sinistre(t) for t in range(ultim)],
+                           'frais_gest_sin':[self.frais_gest_sin(t) for t in range(ultim)],
+                           'pm_inc_clo':[self.pm_inc_clo(t) for t in range(ultim)],
+                           'pm_ch_clo':[self.pm_cho_clo(t) for t in range(ultim)],
+                           'prc_inc_clo':[self.prc_inc_clot(t) for t in range(ultim)],
+                           'prc_dc_clo':[self.prc_dc_clot(t) for t in range(ultim)],
+                           'total_pm_clot':[self.total_provisions_clot(t) for t in range(ultim)],
+                           'prc_inc_ouv':[self.prc_inc_ouv(t) for t in range(ultim)],
+                           'prc_dc_ouv':[self.prc_dc_ouv(t) for t in range(ultim)],
+                           'pm_inc_ouv':[self.pm_inc_ouv(t) for t in range(ultim)],
+                           'pm_ch_ouv':[self.pm_cho_ouv(t) for t in range(ultim)],
+                           'production_financiere':[self.production_financiere(t) for t in range(ultim)],
+                           'resultat_technique':[self.resultat_technique(t) for t in range(ultim)],
+                           'participation_benef_ass':[self.participation_benef_ass(t) for t in range(ultim)],
+                           'participation_benef_part':[self.participation_benef_part(t) for t in range(ultim)],
+                           'resultat_assureur':[self.resultat_assureur(t) for t in range(ultim)]
+                           })
+        return df
+
+
+
 if __name__=="__main__":
     #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
+    dataconfig ={'IncidenceData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//INCIDENCE.csv',
+            'LapseData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//LAPSE.csv',
+            'MaintienChData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//MAINTIEN_CH.csv',
+            'MaintienIncapData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//MAINTIEN_INCAP.csv',
+            'MortaliteTHData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//MORTALITE_TF0002.csv',
+            'MortaliteTFData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//MORTALITE_TH0002.csv',
+            'PassageInvalData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//PASSAGE_INVAL.csv',
+            'referentielProduit' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//TBL_PROD.csv'}
+    # Set the model configuration
+    ADECashFLowModel.config(dataconfig)
     ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
-    projection = ADEFlux(ModelPoint.loc[0,:])
-    rst = projection.calcul_des_flux_du_mp()
+    for i in range(0, ModelPoint.shape[0]):
+        projection = ADECashFLowModel(ModelPoint.loc[i,:])
+        rst = projection.projection_des_effectif_du_mp()
