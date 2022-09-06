@@ -519,6 +519,7 @@ class LoiRachat():
     def __init__(self, lapse) -> None:
         self.Lapse = lapse
 
+    @functools.lru_cache(maxsize=None)
     def prob_rachat(self, produit, anciennete_contrat_mois):
         """probabilité de rachat
 
@@ -533,7 +534,27 @@ class LoiRachat():
             return self.Lapse.loc[self.Lapse["produit"]==produit, str(anciennete_contrat_mois)].values[0]
         except KeyError:
             return self.Lapse.loc[self.Lapse["produit"]==produit, str(self.Lapse.shape[1]-2)].values[0]
-
+    
+class TauxForward():
+    def __init__(self, tauxforward) -> None:
+        self.tauxforward = tauxforward
+    
+    @functools.lru_cache(maxsize=None)
+    def max_time(self):
+        return max(self.tauxforward["TIME"])
+    
+    @functools.lru_cache(maxsize=None)
+    def get_taux_forward_at_t(self, t):
+        if t>self.max_time() or t<=0:
+            return 0
+        else : return self.tauxforward.loc[self.tauxforward["TIME"]==t, 'TX_FORWARD'].values[0]
+    
+    @functools.lru_cache(maxsize=None)
+    def fact_actu(self, t):
+        return pow((1+self.get_taux_forward_at_t(t)), -t)
+            
+        
+        
 class ADECashFLowModel():
     """_summary_
         Class projection to generate projection objects
@@ -568,6 +589,7 @@ class ADECashFLowModel():
     Mortalite = LoiMortalite(pd.DataFrame(), pd.DataFrame())
     PassageInval = LoiPasssageInvalidite(pd.DataFrame())
     ReferentielProduit = TblProd(pd.DataFrame())
+    ForwardRate = TauxForward(pd.DataFrame())
     
     @classmethod
     def config(cls, inputPathDict):
@@ -587,6 +609,7 @@ class ADECashFLowModel():
         cls.Mortalite = LoiMortalite(pd.read_csv(inputPathDict['MortaliteTHData'], sep=";"), pd.read_csv(inputPathDict['MortaliteTFData'], sep=";"))
         cls.PassageInval = LoiPasssageInvalidite(pd.read_csv(inputPathDict['PassageInvalData'], sep=";"))
         cls.ReferentielProduit = TblProd(pd.read_csv(inputPathDict['referentielProduit'], sep=";"))
+        cls.ForwardRate = TauxForward(pd.read_csv(inputPathDict['TxForward'], sep=";"))
     
     @classmethod
     def printconfig(cls):
@@ -595,12 +618,15 @@ class ADECashFLowModel():
         for q, a in cls.ModelConfig.items():
             print(' {0} :  {1}.'.format(q, a))
 
+    @functools.lru_cache(maxsize=None)
     def mp_id(self):
         return self.ModelPointRow.mp_id
 
+    @functools.lru_cache(maxsize=None)
     def sexe(self):
         return self.ModelPointRow.sexe
 
+    @functools.lru_cache(maxsize=None)
     def etat(self):
         return self.ModelPointRow.etat
 
@@ -608,9 +634,11 @@ class ADECashFLowModel():
     def age_actuel(self, t):
         return math.floor(self.ModelPointRow.age_actuel + t/12)
 
+    @functools.lru_cache(maxsize=None)
     def age_souscription_annee(self):
         return self.ModelPointRow.age_souscription_annee
 
+    @functools.lru_cache(maxsize=None)
     def annee_souscription(self):
         return self.ModelPointRow.annee_souscription
 
@@ -622,9 +650,11 @@ class ADECashFLowModel():
     def anciennete_contrat_mois(self,t):
         return self.ModelPointRow.anciennete_contrat_mois + t
 
+    @functools.lru_cache(maxsize=None)
     def duree_pret(self):
         return self.ModelPointRow.duree_pret
 
+    @functools.lru_cache(maxsize=None)
     def age_fin(self):
         return self.ModelPointRow.age_fin
 
@@ -651,11 +681,14 @@ class ADECashFLowModel():
     def duree_restante(self,t):
         return self.ModelPointRow.duree_restante - t
 
+    @functools.lru_cache(maxsize=None)
     def taux_nominal(self):
         return self.ModelPointRow.taux_nominal
 
+    @functools.lru_cache(maxsize=None)
     def taux_mensuel(self):
         return self.ModelPointRow.taux_mensuel
+    
     @functools.lru_cache(maxsize=None)
     def mensualite(self):
         return self.ModelPointRow.mensualite
@@ -664,12 +697,15 @@ class ADECashFLowModel():
     def produit(self):
         return self.ModelPointRow.produit
 
+    @functools.lru_cache(maxsize=None)
     def distribution_channel(self):
         return self.ModelPointRow.distribution_channel
 
+    @functools.lru_cache(maxsize=None)
     def nb_contrats(self):
         return self.ModelPointRow.nb_contrats
     
+    @functools.lru_cache(maxsize=None)
     def age_entree_sinistre(self, t):
         if self.etat()=='v':
             return self.age_actuel(t)
@@ -1054,9 +1090,6 @@ class ADECashFLowModel():
                 'taux_nominal':[self.taux_nominal() for t in range(ultim)],
                 'taux_mensuel':[self.taux_mensuel() for t in range(ultim)],
                 'mensualite':[self.mensualite() for t in range(ultim)],
-                #'prime_dc':[self.prime_dc() for t in range(ultim)],
-                #'prime_inc_inv':[self.prime_inc_inv() for t in range(ultim)],
-                #'prime_ch':[self.prime_ch() for t in range(ultim)],
                 'produit':[self.produit() for t in range(ultim)],
                 'distribution_channel':[self.distribution_channel() for t in range(ultim)],
                 'nb_contrats':[np.sum(self.vecteur_des_effectifs_at_t(t)) for t in range(ultim)],
@@ -1539,6 +1572,7 @@ class ADECashFLowModel():
                            'prc_dc_ouv':[self.prc_dc_ouv(t) for t in range(ultim)],
                            'pm_inc_ouv':[self.pm_inc_ouv(t) for t in range(ultim)],
                            'pm_ch_ouv':[self.pm_cho_ouv(t) for t in range(ultim)],
+                           'total_pm_ouv':[self.total_provisions_ouv(t) for t in range(ultim)],
                            'production_financiere':[self.production_financiere(t) for t in range(ultim)],
                            'resultat_technique':[self.resultat_technique(t) for t in range(ultim)],
                            'participation_benef_ass':[self.participation_benef_ass(t) for t in range(ultim)],
@@ -1546,6 +1580,149 @@ class ADECashFLowModel():
                            'resultat_assureur':[self.resultat_assureur(t) for t in range(ultim)]
                            }
         return pd.DataFrame.from_dict(df)
+    
+    def pv_prc_inc_ouv(self):
+        ultim = self.duree_restante(0)
+        return sum([self.prc_inc_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_prc_dc_ouv(self):
+        ultim = self.duree_restante(0)
+        return sum([self.prc_dc_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_pm_inc_ouv(self):
+        ultim = self.duree_restante(0)
+        return sum([self.pm_inc_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_pm_ch_ouv(self):
+        ultim = self.duree_restante(0)
+        return sum([self.pm_cho_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_total_pm_ouv(self):
+        ultim = self.duree_restante(0)
+        return sum([self.total_provisions_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_pm_inc_clo(self):
+        ultim = self.duree_restante(0)
+        return sum([self.pm_inc_clo(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_pm_ch_clo(self):
+        ultim = self.duree_restante(0)
+        return sum([self.pm_cho_clo(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_prc_inc_clo(self):
+        ultim = self.duree_restante(0)
+        return sum([self.prc_inc_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_prc_dc_clo(self):
+        ultim = self.duree_restante(0)
+        return sum([self.prc_dc_clo(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_total_pm_clot(self):
+        ultim = self.duree_restante(0)
+        return sum([self.total_provisions_clot(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_prime_valide(self):
+        ultim = self.duree_restante(0)
+        return sum([self.prime_valide(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_prime_inc(self):
+        ultim = self.duree_restante(0)
+        return sum([self.prime_inc(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_prime_ch(self):
+        ultim = self.duree_restante(0)
+        return sum([self.prime_ch(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_total_prime(self):
+        ultim = self.duree_restante(0)
+        return sum([self.total_prime(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_frais_acq(self):
+        ultim = self.duree_restante(0)
+        return sum([self.frais_acquisitions(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_frais_admin(self):
+        ultim = self.duree_restante(0)
+        return sum([self.frais_administrations(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_frais_commissions(self):
+        ultim = self.duree_restante(0)
+        return sum([self.frais_commissions(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_total_frais_primes(self):
+        ultim = self.duree_restante(0)
+        return sum([self.total_frais_primes(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_sinistre_dc(self):
+        ultim = self.duree_restante(0)
+        return sum([self.sinistre_dc(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_sinistre_inc(self):
+        ultim = self.duree_restante(0)
+        return sum([self.sinistre_inc(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_sinistre_ch(self):
+        ultim = self.duree_restante(0)
+        return sum([self.sinistre_ch(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_sinistre_inv(self):
+        ultim = self.duree_restante(0)
+        return sum([self.sinistre_inv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_sinistre_total(self):
+        ultim = self.duree_restante(0)
+        return sum([self.total_sinistre(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_frais_gest_sin(self):
+        ultim = self.duree_restante(0)
+        return sum([self.frais_gest_sin(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_production_financiere(self):
+        ultim = self.duree_restante(0)
+        return sum([self.production_financiere(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_resultat_technique(self):
+        ultim = self.duree_restante(0)
+        return sum([self.resultat_technique(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_participation_benef_ass(self):
+        ultim = self.duree_restante(0)
+        return sum([self.participation_benef_ass(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_participation_benef_part(self):
+        ultim = self.duree_restante(0)
+        return sum([self.participation_benef_part(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+    
+    def pv_resultat_assureur(self):
+        ultim = self.duree_restante(0)
+        return sum([self.resultat_assureur(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
+        
+    def present_value_future_cash_flow(self):
+        df = {'time':0,
+              'mp_id':self.mp_id(),
+              'last_t':self.duree_restante(0),
+              'pv_prime_valide':self.pv_prime_valide(),
+              'pv_prime_inc':self.pv_prime_inc(),
+              'pv_prime_ch':self.pv_prime_ch(),
+              'pv_total_prime':self.pv_total_prime(),
+              'pv_frais_acq':self.pv_frais_acq(),
+              'pv_frais_admin':self.pv_frais_admin(),
+              'pv_frais_commissions':self.pv_frais_commissions(),
+              'pv_total_frais_primes':self.pv_total_frais_primes(),
+              'pv_sinistre_dc':self.pv_sinistre_dc(),
+              'pv_sinistre_inc':self.pv_sinistre_inc(),
+              'pv_sinistre_ch':self.pv_sinistre_ch(),
+              'pv_sinistre_inv':self.pv_sinistre_inv(),
+              'pv_sinistre_total':self.pv_sinistre_total(),
+              'pv_total_pm_clot':self.pv_total_pm_clot(),
+              'pv_total_pm_ouv':self.pv_total_pm_ouv(),
+              'pv_frais_gest_sin':self.pv_frais_gest_sin(),
+              'pv_production_financiere':self.pv_production_financiere(),
+              'pv_resultat_technique':self.pv_resultat_technique(),
+              'pv_participation_benef_ass':self.pv_participation_benef_ass(),
+              'pv_participation_benef_part':self.pv_participation_benef_part(),
+              'pv_resultat_assureur':self.pv_resultat_assureur()}
+        return pd.DataFrame.from_dict(df, orient='index')
     
     def full_cash_flow_projection_to_csv(self):
         """
@@ -1555,7 +1732,6 @@ class ADECashFLowModel():
         date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
         pth = ADECashFLowModel.ModelConfig['PathOutput']+'run_ae_'+date_time+'.csv'
         df.to_csv(pth, sep=',', decimal='.', header=True, index=False)
-
 
 
 if __name__=="__main__":
@@ -1568,17 +1744,21 @@ if __name__=="__main__":
             'MortaliteTFData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//MORTALITE_TH0002.csv',
             'PassageInvalData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//PASSAGE_INVAL.csv',
             'referentielProduit' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//TBL_PROD.csv',
+            'TxForward' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//TX_FORWARD.csv',
             'PathOutput' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//SORTIES_MODELE//'}
     # Set the model configuration
     ADECashFLowModel.config(dataconfig)
     ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
     df = pd.DataFrame()
-    for i in range(0, ModelPoint.shape[0]):
-        print(i)
-        projection = ADECashFLowModel(ModelPoint.loc[i,:])
-        df = df.append(projection.full_cash_flow_projection())
-        print(i)
-    date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
-    pth = ADECashFLowModel.ModelConfig['PathOutput']+'run_ae_'+date_time+'.csv'
-    df.to_csv(pth, sep=',', decimal='.', header=True, index=False)
+    projection = ADECashFLowModel(ModelPoint.loc[2,:])
+    print(projection.present_value_future_cash_flow())
+    
+    # for i in range(0, ModelPoint.shape[0]):
+    #     print(i)
+    #     projection = ADECashFLowModel(ModelPoint.loc[i,:])
+    #     df = df.append(projection.full_cash_flow_projection())
+    #     print(i)
+    # date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
+    # pth = ADECashFLowModel.ModelConfig['PathOutput']+'run_ae_'+date_time+'.csv'
+    # df.to_csv(pth, sep=',', decimal='.', header=True, index=False)
     # df.to_csv(dataconfig['PathOutput'], sep=',', decimal='.', header=True, index=False)
