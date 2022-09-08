@@ -19,43 +19,43 @@ class TblProd():
     def __init__(self, tblProduct) -> None:
         self.TblProduct = tblProduct
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_prime_dc(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_prime_dc"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_prime_inc(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_prime_inc"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_prime_chomage(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_prime_chomage"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_frais_admin(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_frais_admin"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_frais_acq(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_frais_acq"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_comm(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_comm"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_profit_sharing_assureur(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_profit_sharing_assureur"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_profit_sharing_partenaire(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_profit_sharing_partenaire"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_production_financiere(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_production_financiere"].values[0]
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_tx_frais_gest_sin(self, productCode):
         return self.TblProduct.loc[self.TblProduct["produits"]==productCode,"tx_frais_gest_sin"].values[0]
 
@@ -66,7 +66,7 @@ class LoiMaintienChomage():
     def __init__(self, maintienCh) -> None:
         self.MaintienCh = maintienCh
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_age_pass_ch(self):
         """age max de la loi d'incidence
 
@@ -75,11 +75,11 @@ class LoiMaintienChomage():
         """
         return max(self.MaintienCh["Age_Anciennete"])
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_duration_pass_ch(self):
         return self.MaintienCh.shape[1]-2
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def  nombre_maintien_chomage(self, age_entree, anciennete_chomage):
         """_summary_
 
@@ -97,7 +97,7 @@ class LoiMaintienChomage():
                 return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==math.floor(age_entree), str(self.MaintienCh.shape[1]-2)].values[0]
         else: return self.MaintienCh.loc[self.MaintienCh["Age_Anciennete"]==self.max_age_pass_ch(), str(self.max_duration_pass_ch())].values[0]
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prob_passage_ch_ch(self, age, anciennete_chomage):
         """proba de rester en chomage
 
@@ -119,7 +119,7 @@ class LoiMaintienIncapacite():
     def __init__(self, maintienIncap) -> None:
         self.MaintienIncap = maintienIncap
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_age_pass_inc(self):
         """age max de la loi d'incidence
 
@@ -128,11 +128,11 @@ class LoiMaintienIncapacite():
         """
         return max(self.MaintienIncap["Age_Anciennete"])
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_duration_pass_inc(self):
         return self.MaintienIncap.shape[1]-2
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def nombre_maintien_incap(self, age_entree, anciennete_incap):
         """_summary_
 
@@ -151,7 +151,7 @@ class LoiMaintienIncapacite():
             except KeyError:
                 return self.MaintienIncap.loc[self.MaintienIncap["Age_Anciennete"]==math.floor(age_entree),str(self.MaintienIncap.shape[1]-2)].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prob_passage_inc_inc(self, age, anciennete_inc):
         """proba de rester en incap
 
@@ -173,7 +173,7 @@ class LoiPasssageInvalidite():
     def __init__(self, passageInval) -> None:
         self.PassageInval = passageInval
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_age_pass_inval(self):
         """age max de la loi d'incidence
 
@@ -182,11 +182,11 @@ class LoiPasssageInvalidite():
         """
         return max(self.PassageInval["Age_Anciennete"])
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_duration_pass_inval(self):
         return self.PassageInval.shape[1]-2
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def nombre_passage_inval(self, age_entree, anciennete_incap):
         """_summary_
 
@@ -208,7 +208,7 @@ class LoiIncidence():
     def __init__(self, incidence) -> None:
         self.Incidence = incidence
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_age_incidence(self):
         """age max de la loi d'incidence
 
@@ -217,7 +217,7 @@ class LoiIncidence():
         """
         return max(self.Incidence["age_x"])
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prob_entree_incap(self, age_actuel):
         """proba pour un valide d'entré en incap
 
@@ -232,7 +232,7 @@ class LoiIncidence():
         else:
             return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_incap"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prob_entree_chomage(self, age_actuel):
         """proba pour un valide d'entré en chomage
 
@@ -247,7 +247,7 @@ class LoiIncidence():
         else:
             return self.Incidence.loc[self.Incidence["age_x"]==self.max_age_incidence(), "Incidence_en_chomage"].values[0]
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prob_entree_inval(self, age_actuel):
         """proba pour un valide d'entré en inval
 
@@ -270,7 +270,7 @@ class LoiMortalite():
         self.MortaliteTF = mortaliteTF
         self.tech_int_rate = tech_int_rate
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_age_mortality_th(self):
         """max age mortalite TH
 
@@ -279,7 +279,7 @@ class LoiMortalite():
         """
         return max(self.MortaliteTH["age_x"])
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_age_mortality_tf(self):
         """max age mortalite TF
 
@@ -288,7 +288,7 @@ class LoiMortalite():
         """
         return max(self.MortaliteTF["age_x"])
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prob_dc(self, sexe, age_actuel):
         """Return Qx for age and sex.
 
@@ -310,7 +310,7 @@ class LoiMortalite():
             else :
                 return self.MortaliteTH.loc[self.MortaliteTH["age_x"]==math.floor(age_actuel), "Qx"].values[0]
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def lx(self, sexe, age_actuel):
         """The number of persons remaining at age
 
@@ -326,7 +326,7 @@ class LoiMortalite():
         else:
             return self.lx(sexe, age_actuel-1) - self.dx(sexe, age_actuel-1)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def dx(self, sexe, age_actuel):
         """The number of persons who die between ages ``x`` and ``x+1``
 
@@ -349,7 +349,7 @@ class LoiMortalite():
         """
         return 1 / (1 + self.tech_int_rate)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def Dx(self, sexe, age_actuel):
         """The commutation column :math:`D_{x} = l_{x}v^{x}`.
 
@@ -362,7 +362,7 @@ class LoiMortalite():
         """
         return self.lx(sexe, age_actuel) * pow(self.disc(), age_actuel)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def Nx(self, sexe, age_actuel):
         """ The commutation column :math:`N_x`. 
 
@@ -378,7 +378,7 @@ class LoiMortalite():
         else:
             return self.Nx(sexe, age_actuel+1) + self.Dx(sexe, age_actuel)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def Mx(self, sexe, age_actuel):
         """The commutation column :math:`M_x`.
 
@@ -519,7 +519,7 @@ class LoiRachat():
     def __init__(self, lapse) -> None:
         self.Lapse = lapse
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prob_rachat(self, produit, anciennete_contrat_mois):
         """probabilité de rachat
 
@@ -539,17 +539,17 @@ class TauxForward():
     def __init__(self, tauxforward) -> None:
         self.tauxforward = tauxforward
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def max_time(self):
         return max(self.tauxforward["TIME"])
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_taux_forward_at_t(self, t):
         if t>self.max_time() or t<=0:
             return 0
         else : return self.tauxforward.loc[self.tauxforward["TIME"]==t, 'TX_FORWARD'].values[0]
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def fact_actu(self, t):
         return pow((1+self.get_taux_forward_at_t(t)), -t)
             
@@ -618,47 +618,47 @@ class ADECashFLowModel():
         for q, a in cls.ModelConfig.items():
             print(' {0} :  {1}.'.format(q, a))
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def mp_id(self):
         return self.ModelPointRow.mp_id
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def sexe(self):
         return self.ModelPointRow.sexe
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def etat(self):
         return self.ModelPointRow.etat
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def age_actuel(self, t):
         return math.floor(self.ModelPointRow.age_actuel + t/12)
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def age_souscription_annee(self):
         return self.ModelPointRow.age_souscription_annee
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def annee_souscription(self):
         return self.ModelPointRow.annee_souscription
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def anciennete_contrat_annee(self,t):
         return self.ModelPointRow.anciennete_contrat_annee + t/12
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def anciennete_contrat_mois(self,t):
         return self.ModelPointRow.anciennete_contrat_mois + t
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def duree_pret(self):
         return self.ModelPointRow.duree_pret
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def age_fin(self):
         return self.ModelPointRow.age_fin
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def ci(self):
         """
             retourne le Capital Initial du prêt
@@ -667,7 +667,7 @@ class ADECashFLowModel():
         """
         return self.ModelPointRow.ci
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def crd(self, t):
         """
             retourne le Montant Restant dû du crédit juste après la mensualité versé à l'instant t
@@ -677,48 +677,48 @@ class ADECashFLowModel():
         crd = self.loan_balance_at_n(self.ci(), self.taux_nominal(), 12, self.duree_pret()/12, (self.duree_pret()-self.duree_restante(t)))
         return crd
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def duree_restante(self,t):
         return self.ModelPointRow.duree_restante - t
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def taux_nominal(self):
         return self.ModelPointRow.taux_nominal
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def taux_mensuel(self):
         return self.ModelPointRow.taux_mensuel
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def mensualite(self):
         return self.ModelPointRow.mensualite
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def produit(self):
         return self.ModelPointRow.produit
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def distribution_channel(self):
         return self.ModelPointRow.distribution_channel
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def nb_contrats(self):
         return self.ModelPointRow.nb_contrats
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def age_entree_sinistre(self, t):
         if self.etat()=='v':
             return self.age_actuel(t)
         else : return math.floor(self.age_actuel(t) - self.duree_sinistre(t)/12)
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def duree_sinistre(self,t):
         if self.etat()=='v':
             return 0
         return self.ModelPointRow.duree_sinistre + t
     
     ### Hypothèse demographique
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prob_passage_inc_inv(self, age_entree, duration_incap):
         """retourne la proba de passage de l'état inc vers inv
 
@@ -735,7 +735,7 @@ class ADECashFLowModel():
             return ADECashFLowModel.PassageInval.nombre_passage_inval(age_entree, duration_incap)/ADECashFLowModel.MaintienIncap.nombre_maintien_incap(age_entree, duration_incap)
     
     ### Projection des effectifs
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def constitution_matrix_transitions(self, age_entree_etat, duration_etat_at_t, t):
         """Calcul de la matrice des probabilité de transitions pour les 6 états : 
         [VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE]    x   [VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE]
@@ -781,7 +781,7 @@ class ADECashFLowModel():
         mat[5,5] = 0
         return mat
     
-    #@functools.lru_cache(maxsize=None)
+    #@functools.cache
     def projection_initiale_state_at_t(self, init_state_at_t0, actual_state_at_t_n_1, mat_transitions):
         """retourne les effectifs projeté poru chaque état à la maille duration
 
@@ -799,7 +799,7 @@ class ADECashFLowModel():
         res[1,] = (init_state_at_t0==0)*tra
         return res
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def get_next_state(self, t):
         """Projection des effectifs en temps t.
 
@@ -822,7 +822,7 @@ class ADECashFLowModel():
             init_state_projection[1:,0] = 0
         return init_state_projection
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def vecteur_des_effectifs_at_t(self, t):
         """Vecteur de effectifs totaux par état temps t:
             6 états suivants : VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE
@@ -841,7 +841,7 @@ class ADECashFLowModel():
             return  np.sum(self.get_next_state(t), axis=0)
 
     ### Fonctions utiles des calculs de provisions oslr et prc
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def pmxcho(self, age_entre, dure_ecoulee, D1, D2, taux_actu):
         """OSLR  chomage
 
@@ -860,7 +860,7 @@ class ADECashFLowModel():
             som2 = som2 + pow((1 + taux_actu),(-((i + 1) / 12))) * ADECashFLowModel.MaintienCh.nombre_maintien_chomage(age_entre, dure_ecoulee + i + 1)
         return((som1 + som2) / (2 * l))
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def pmxinc(self, agentree, durecoulee, D1, D2, taux_actu):
         """OSLR Incapacite
 
@@ -881,7 +881,7 @@ class ADECashFLowModel():
             som2 = som2 + pow((1 + taux_actu),(-((i + 1) / 12))) * ADECashFLowModel.MaintienIncap.nombre_maintien_incap(agentree, durecoulee + i + 1)
         return ((som1 + som2) / (2 * l))
 
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def pmxpot2(self, agentree, durecoulee, D1, D2, taux, crd):
         """PRC ITT 
 
@@ -920,7 +920,7 @@ class ADECashFLowModel():
     #         #lapse(lapse.matrix, caisse, contrat, floor((duration+i)/12)) )
     #     return(som)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prc_inc_clot(self, t, tech_int_rate=0):
         if t> self.duree_restante(0) or t<0:
             return 0
@@ -940,13 +940,13 @@ class ADECashFLowModel():
                 eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
             return max(eng_assureur-eng_assure, 0) * self.couv_inc()
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prc_inc_ouv(self, t, tech_int_rate=0):
         if t==0:
             return self.prc_inc_clot(0, tech_int_rate)
         else : return self.prc_inc_clot(t-1, tech_int_rate)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prc_dc_clot(self, t, tech_int_rate=0):
         """provision pour risk croissant du risque DC
 
@@ -973,13 +973,13 @@ class ADECashFLowModel():
                 eng_assure = eng_assure + (self.Mortalite.lx(sexe, round(age_actuel+i)) / self.Mortalite.lx(sexe, round(age_actuel))) * ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit) * self.ci() * pow((1+tech_int_rate), (-i))
             return max(eng_assureur-eng_assure, 0) * self.couv_dc()
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prc_dc_ouv(self, t, tech_int_rate=0):
         if t==0:
             return self.prc_dc_clot(0, tech_int_rate)
         else : return self.prc_dc_clot(t-1, tech_int_rate)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def amortisation_schedule(self, amount, annualinterestrate, paymentsperyear, years):
         """
             Tableau d'amortissement du prêt
@@ -1001,7 +1001,7 @@ class ADECashFLowModel():
         df['Mois'] = np.arange(1, df.shape[0]+1, 1)
         return (df)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def loan_balance_at_n(self, amount, annualinterestrate, paymentsperyear, years, n):
         """montant/Capital restat dû juste après le n-ieme remboursement périodique
 
@@ -1018,7 +1018,7 @@ class ADECashFLowModel():
         principalpaid = [npf.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(n)]
         return amount+np.sum(principalpaid)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def couv_inv(self):
         """couverture invalidité 
 
@@ -1030,7 +1030,7 @@ class ADECashFLowModel():
         else:
             return 1
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def couv_inc(self):
         """couverture incapacité 
 
@@ -1042,7 +1042,7 @@ class ADECashFLowModel():
         else:
             return 1
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def couv_ch(self):
         """couverture chomage 
 
@@ -1054,7 +1054,7 @@ class ADECashFLowModel():
         else:
             return 1
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def couv_dc(self):
         """couverture DC 
 
@@ -1139,7 +1139,7 @@ class ADECashFLowModel():
         df["total_frais_primes"] = df["frais_commissions"] + df["frais_acquisitions"] + df["frais_administrations"]
         return df
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def sinistre_dc(self, t):
         """Montant du sinistre pour DC
 
@@ -1154,7 +1154,7 @@ class ADECashFLowModel():
             return self.vecteur_des_effectifs_at_t(t)[1] * self.couv_dc() * self.crd(t)
         else: return 0
         
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def sinistre_inv(self, t):
         """Montant du sinistre pour inv
 
@@ -1169,7 +1169,7 @@ class ADECashFLowModel():
             return self.vecteur_des_effectifs_at_t(t)[4] * self.couv_inv() * self.crd(t)
         else: return 0
         
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def sinistre_ch(self, t):
         """Montant du sinistre pour ch
 
@@ -1184,7 +1184,7 @@ class ADECashFLowModel():
             return self.vecteur_des_effectifs_at_t(t)[2] * self.couv_ch() * self.mensualite()
         else: return 0
         
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def sinistre_inc(self, t):
         """Montant du sinistre pour inc
 
@@ -1199,13 +1199,13 @@ class ADECashFLowModel():
             return self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inc() * self.mensualite()
         else: return 0
         
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def total_sinistre(self, t):
         if t<=self.duree_restante(0):
             return self.sinistre_dc(t) + self.sinistre_inv(t) + self.sinistre_inc(t) + self.sinistre_ch(t)
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def frais_gest_sin(self, t):
         """retourne le Montant total sinistre dc+inv+inc+ch à t
 
@@ -1219,7 +1219,7 @@ class ADECashFLowModel():
             return self.total_sinistre(t) * ADECashFLowModel.ReferentielProduit.get_tx_frais_gest_sin(self.produit())
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prime_valide(self, t):
         """montant des primes versées par les valides
 
@@ -1234,7 +1234,7 @@ class ADECashFLowModel():
             return self.vecteur_des_effectifs_at_t(t)[0] * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_inv()
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prime_inc(self, t):
         """montant des primes versées par les effectifs au incapacités
 
@@ -1249,7 +1249,7 @@ class ADECashFLowModel():
             return self.vecteur_des_effectifs_at_t(t)[3] * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_inc()
         else: return 0
         
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def prime_ch(self, t):
         """montant des primes versées par les effectifs au chomages
 
@@ -1264,7 +1264,7 @@ class ADECashFLowModel():
             return self.vecteur_des_effectifs_at_t(t)[2] * (ADECashFLowModel.ReferentielProduit.get_tx_prime_chomage(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_dc(produit)+ADECashFLowModel.ReferentielProduit.get_tx_prime_inc(produit)) * self.ci() * self.couv_ch()
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def total_prime(self, t):
         """montant total des primes versées par les effectifs.
         Args:
@@ -1277,7 +1277,7 @@ class ADECashFLowModel():
             return self.prime_valide(t) + self.prime_inc(t) + self.prime_ch(t)
         else: return 0
         
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def frais_administrations(self, t):
         """montant  des frais d'administrations à t.
         Args:
@@ -1290,7 +1290,7 @@ class ADECashFLowModel():
             return ADECashFLowModel.ReferentielProduit.get_tx_frais_admin(self.produit()) * self.total_prime(t)
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def frais_acquisitions(self, t):
         """montant  des frais d'acquisisiton à t.
         Args:
@@ -1303,7 +1303,7 @@ class ADECashFLowModel():
             return ADECashFLowModel.ReferentielProduit.get_tx_frais_acq(self.produit()) * self.total_prime(t)
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def frais_commissions(self, t):
         """montant des frais de commission à t.
         Args:
@@ -1316,7 +1316,7 @@ class ADECashFLowModel():
             return ADECashFLowModel.ReferentielProduit.get_tx_comm(self.produit()) * self.total_prime(t)
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def total_frais_primes(self, t):
         """montant total des frais à t.
         Args:
@@ -1329,7 +1329,7 @@ class ADECashFLowModel():
             return self.frais_administrations(t) + self.frais_acquisitions(t) + self.frais_commissions(t)
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def pm_inc_clo(self, t):
         """montant des pm oslr inc à la cloture de t
 
@@ -1343,7 +1343,7 @@ class ADECashFLowModel():
             return self.pmxinc(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, (35-self.anciennete_contrat_mois(t)), 0) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inc()
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def pm_inc_ouv(self, t):
         """montant des pm oslr inc à l'ouverture de t
 
@@ -1357,7 +1357,7 @@ class ADECashFLowModel():
             return self.pm_inc_clo(0)
         else : return self.pm_inc_clo(t-1)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def pm_cho_clo(self, t):
         """montant des pm oslr cho à la cloture de t
 
@@ -1371,7 +1371,7 @@ class ADECashFLowModel():
             return self.pmxcho(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0) * self.vecteur_des_effectifs_at_t(t)[2] * self.couv_ch()
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def pm_cho_ouv(self, t):
         """montant des pm oslr cho à la l'ouverture de t
 
@@ -1411,7 +1411,7 @@ class ADECashFLowModel():
     #         return self.pm_inc_inv_clo(0)
     #     else : return self.pm_inc_inv_clo(t-1)
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def total_provisions_clot(self, t):
         """retourne le total des provisions à la cloture
 
@@ -1425,7 +1425,7 @@ class ADECashFLowModel():
             return self.pm_inc_clo(t) + self.pm_cho_clo(t) + self.prc_inc_clot(t) + self.prc_dc_clot(t)
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def total_provisions_ouv(self, t):
         """reoturne le total des provisions à l'ouverture
 
@@ -1439,7 +1439,7 @@ class ADECashFLowModel():
             return self.pm_inc_ouv(t) + self.pm_cho_ouv(t) + self.prc_inc_ouv(t) + self.prc_dc_ouv(t)
         else: return 0
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def production_financiere(self, t):
         """retourne la production financière moyenne entre l'ouverture et la cloture
 
@@ -1454,7 +1454,7 @@ class ADECashFLowModel():
         else:
             return (self.total_provisions_clot(t) + self.total_provisions_ouv(t)) / 2 * ADECashFLowModel.ReferentielProduit.get_tx_production_financiere(self.produit())
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def resultat_technique(self, t):
         """retourne le resultat technique : primes - frais - sinistres - les augmentations de pm entre l'ouv et la cloture
 
@@ -1473,7 +1473,7 @@ class ADECashFLowModel():
                                     - (self.prc_dc_clot(t)-self.prc_dc_ouv(t)) \
                                     - (self.prc_inc_clot(t)-self.prc_inc_ouv(t))
     
-    @functools.lru_cache(maxsize=None)               
+    @functools.cache               
     def participation_benef_ass(self, t):
         """participation au benef assureur
 
@@ -1488,7 +1488,7 @@ class ADECashFLowModel():
         else:
             return self.resultat_technique(t) * ADECashFLowModel.ReferentielProduit.get_tx_profit_sharing_assureur(self.produit())
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def participation_benef_part(self, t):
         """participation au benef partenaire
 
@@ -1503,7 +1503,7 @@ class ADECashFLowModel():
         else:
             return self.resultat_technique(t) * ADECashFLowModel.ReferentielProduit.get_tx_profit_sharing_partenaire(self.produit())
     
-    @functools.lru_cache(maxsize=None)
+    @functools.cache
     def resultat_assureur(self, t):
         if t> self.duree_restante(0):
             return 0
