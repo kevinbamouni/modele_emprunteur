@@ -12,6 +12,7 @@ La projection des effectifs est faite avec une chaine de markov.
 ### Les états
 
 Modèle à 6 états : VALIDE, DC, CHOMAGE, INCAPACITE, INVALIDITE, LAPSE avec DC, INVALIDITE, LAPSE des états absorbants.
+Codes dans les models points : v : valide, ch : chomage, inc : incapacite.
 
 ### Matrice des transitions
 
@@ -43,4 +44,6 @@ Elle représente les probabilités de passage entre états :
   La Matrice de transition $M(t)$ est calculée à partir des différentes lois de transitions et d'incidences. ces lois, dans ce modèle sont fonction de l'âge, l'âge d'entré dans un état ainsi que la duration effectuée dans cet état.
   On a Le vecteur des effectifs à $t$ : $  V(t) = V(t-1) * M(t) $
 
+##### Schema de projection des effectifs :
 
+  ![image info](./CSV/projection_effectifs.JPG)
