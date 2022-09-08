@@ -85,7 +85,7 @@ class LoiMaintienChomage():
 
         Args:
             age_entree (int): age entree en chomage
-            anciennete_chomage (_type_): duration en chomage
+            anciennete_chomage (int): duration en chomage
 
         Returns:
             int: nombre en chomage
@@ -106,7 +106,7 @@ class LoiMaintienChomage():
             anciennete_chomage (int): duration en chomage
 
         Returns:
-            float: proba rester en chomage
+            decimal: proba rester en chomage
         """
         if age<=self.max_age_pass_ch() and (anciennete_chomage+1)<=self.max_duration_pass_ch():
             return self.nombre_maintien_chomage(age, anciennete_chomage+1)/self.nombre_maintien_chomage(age, anciennete_chomage)
@@ -160,7 +160,7 @@ class LoiMaintienIncapacite():
             anciennete_inc (int): duration en incap
 
         Returns:
-            float: proba de rester en incap
+            decimal: proba de rester en incap
         """
         if age>self.max_age_pass_inc() or (anciennete_inc+1)>self.max_duration_pass_inc():
             return 0
@@ -528,7 +528,7 @@ class LoiRachat():
             anciennete_contrat_mois (int): duration du contrat en mois
 
         Returns:
-            float: probabilité de rachat du contrat
+            decimal: probabilité de rachat du contrat
         """
         try:
             return self.Lapse.loc[self.Lapse["produit"]==produit, str(anciennete_contrat_mois)].values[0]
@@ -663,7 +663,7 @@ class ADECashFLowModel():
         """
             retourne le Capital Initial du prêt
         Returns:
-            float: Capital initial du prêt
+            decimal: Capital initial du prêt
         """
         return self.ModelPointRow.ci
 
@@ -672,7 +672,7 @@ class ADECashFLowModel():
         """
             retourne le Montant Restant dû du crédit juste après la mensualité versé à l'instant t
         Returns:
-            float: montant du capital restant dû
+            decimal: montant du capital restant dû
         """
         crd = self.loan_balance_at_n(self.ci(), self.taux_nominal(), 12, self.duree_pret()/12, (self.duree_pret()-self.duree_restante(t)))
         return crd
@@ -727,7 +727,7 @@ class ADECashFLowModel():
             duration_incap (int): ancienneté en incap
 
         Returns:
-            float: proba de passer de inc vers inv
+            decimal: proba de passer de inc vers inv
         """
         if age_entree>ADECashFLowModel.PassageInval.max_age_pass_inval() or duration_incap>ADECashFLowModel.PassageInval.max_duration_pass_inval():
             return 0
@@ -850,7 +850,7 @@ class ADECashFLowModel():
             dure_ecoulee (int): Durée écoulée en incapacité en mois
             D1 (int): Début du paiement dans D1 mois (si pas de franchise à 0), nombre de mosi de carence
             D2 (int): Fin du paiement de l'incapacité dans D2 mois (cas 1: D2+dureecoulee est inférieure à 35 mois)
-            taux_actu (float): Taux technique d'actualisation
+            taux_actu (decimal): Taux technique d'actualisation
         """
         som1 = 0
         som2 = 0
@@ -869,7 +869,7 @@ class ADECashFLowModel():
             durecoulee (int): Durée écoulée en incapacité en mois
             D1 (int): Début du paiement dans D1 mois (si pas de franchise à 0), nombre de mosi de carence
             D2 (int): Fin du paiement de l'incapacité dans D2 mois (cas 1: D2+dureecoulee est inférieure à 35 mois)
-            taux_actu (float): Taux technique d'actualisation
+            taux_actu (decimal): Taux technique d'actualisation
 
         Returns:
             _type_: _description_
@@ -890,11 +890,11 @@ class ADECashFLowModel():
             durecoulee (int): Durée écoulée en incapacité en mois
             D1 (int): Début du paiement dans D1 mois (si pas de franchise à 0), nombre de mosi de carence
             D2 (int): Fin du paiement de l'incapacité dans D2 mois (cas 1: D2+dureecoulee est inférieure à 35 mois)
-            taux (float): Taux d'intérêt technique
-            crd (float): Credit restant dû
+            taux (decimal): Taux d'intérêt technique
+            crd (decimal): Credit restant dû
 
         Returns:
-            float: _description_
+            decimal: PRC ITT
         """
         som1 = som2 = 0
         l = ADECashFLowModel.MaintienIncap.nombre_maintien_incap(agentree, durecoulee)
@@ -910,9 +910,9 @@ class ADECashFLowModel():
     #     Args:
     #         agentree (int): _description_
     #         D2 (int): _description_
-    #         taux (float): _description_
-    #         crd (float): _description_
-    #         mensualite (float): _description_
+    #         taux (decimal): _description_
+    #         crd (decimal): _description_
+    #         mensualite (decimal): _description_
     #     """
     #     som = 0
     #     for i in range(0,D2+1):
@@ -955,7 +955,7 @@ class ADECashFLowModel():
             tech_int_rate (int, optional): technical interest rate for technical cash flow discount factor. Defaults to 0.
 
         Returns:
-            float: provision pour risk croissant
+            decimal: provision pour risk croissant
         """
         if t> self.duree_restante(0) or t<0:
             return 0
@@ -984,9 +984,9 @@ class ADECashFLowModel():
         """
             Tableau d'amortissement du prêt
         Args:
-            amount (float): Montant initial du prêt
-            annualinterestrate (float): taux d'interet annuel
-            paymentsperyear (float): Nombre de paiment dans l'année
+            amount (decimal): Montant initial du prêt
+            annualinterestrate (decimal): taux d'interet annuel
+            paymentsperyear (decimal): Nombre de paiment dans l'année
             years (int): nombre d'années du prêt
 
         Returns:
@@ -1006,14 +1006,14 @@ class ADECashFLowModel():
         """montant/Capital restat dû juste après le n-ieme remboursement périodique
 
         Args:
-            amount (float): Montant initial du prêt
+            amount (decimal): Montant initial du prêt
             annualinterestrate (flott): taux d'interêt annuel du pret
             paymentsperyear (int): nombre de mensualités dans l'année
             years (int): nombre d'années du prêt
             n (int): N-ieme paiement effectué
 
         Returns:
-            float: Capital restant dû juste après le (n)-ieme paiement
+            decimal: Capital restant dû juste après le (n)-ieme paiement
         """
         principalpaid = [npf.ppmt(annualinterestrate/paymentsperyear, i+1, paymentsperyear*years, amount) for i in range(n)]
         return amount+np.sum(principalpaid)
@@ -1147,7 +1147,7 @@ class ADECashFLowModel():
             t (int): temps de projection
 
         Returns:
-            float: Montant du sinistre pour DC à t
+            decimal: Montant du sinistre pour DC à t
         """
         ultimate = self.duree_restante(0)
         if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=75) and t<=ultimate:
@@ -1162,7 +1162,7 @@ class ADECashFLowModel():
             t (int): temps de projection
 
         Returns:
-            float: Montant du sinistre pour inv à t
+            decimal: Montant du sinistre pour inv à t
         """
         ultimate = self.duree_restante(0)
         if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=60) and t<=ultimate:
@@ -1177,7 +1177,7 @@ class ADECashFLowModel():
             t (int): temps de projection
 
         Returns:
-            float: Montant du sinistre pour ch à t
+            decimal: Montant du sinistre pour ch à t
         """
         ultimate = self.duree_restante(0)
         if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=65) and t<=ultimate:
@@ -1192,7 +1192,7 @@ class ADECashFLowModel():
             t (int): temps de projection
 
         Returns:
-            float: Montant du sinistre pour inc à t
+            decimal: Montant du sinistre pour inc à t
         """
         ultimate = self.duree_restante(0)
         if (self.anciennete_contrat_annee(t)<=30 or self.age_actuel(t)<=65) and t<=ultimate:
@@ -1213,7 +1213,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: Montant total sinistre dc+inv+inc+ch à t
+            decimal: Montant total sinistre dc+inv+inc+ch à t
         """
         if t<=self.duree_restante(0):
             return self.total_sinistre(t) * ADECashFLowModel.ReferentielProduit.get_tx_frais_gest_sin(self.produit())
@@ -1227,7 +1227,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des primes versées par les valides à t
+            decimal: montant des primes versées par les valides à t
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
@@ -1242,7 +1242,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des primes versées par les effectifs en incapacités à t
+            decimal: montant des primes versées par les effectifs en incapacités à t
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
@@ -1257,7 +1257,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des primes versées par les effectifs au chomages à t
+            decimal: montant des primes versées par les effectifs au chomages à t
         """
         produit = self.produit()
         if t<=self.duree_restante(0):
@@ -1271,7 +1271,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant total des primes versées par les effectifs.
+            decimal: montant total des primes versées par les effectifs.
         """
         if t<=self.duree_restante(0):
             return self.prime_valide(t) + self.prime_inc(t) + self.prime_ch(t)
@@ -1284,7 +1284,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des frais d'administrations à t.
+            decimal: montant des frais d'administrations à t.
         """
         if t<=self.duree_restante(0):
             return ADECashFLowModel.ReferentielProduit.get_tx_frais_admin(self.produit()) * self.total_prime(t)
@@ -1297,7 +1297,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des frais d'acquisisiton à t.
+            decimal: montant des frais d'acquisisiton à t.
         """
         if t<=self.duree_restante(0):
             return ADECashFLowModel.ReferentielProduit.get_tx_frais_acq(self.produit()) * self.total_prime(t)
@@ -1310,7 +1310,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des frais de commission à t.
+            decimal: montant des frais de commission à t.
         """
         if t<=self.duree_restante(0):
             return ADECashFLowModel.ReferentielProduit.get_tx_comm(self.produit()) * self.total_prime(t)
@@ -1323,7 +1323,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant total des frais à t.
+            decimal: montant total des frais à t.
         """
         if t<=self.duree_restante(0):
             return self.frais_administrations(t) + self.frais_acquisitions(t) + self.frais_commissions(t)
@@ -1337,7 +1337,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des pm oslr inc à la cloture de t
+            decimal: montant des pm oslr inc à la cloture de t
         """
         if t<=self.duree_restante(0):
             return self.pmxinc(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, (35-self.anciennete_contrat_mois(t)), 0) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inc()
@@ -1351,7 +1351,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des pm oslr inc à l'ouverture de t
+            decimal: montant des pm oslr inc à l'ouverture de t
         """
         if t==0:
             return self.pm_inc_clo(0)
@@ -1365,7 +1365,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des pm oslr cho à la cloture de t
+            decimal: montant des pm oslr cho à la cloture de t
         """
         if t<=self.duree_restante(0):
             return self.pmxcho(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0) * self.vecteur_des_effectifs_at_t(t)[2] * self.couv_ch()
@@ -1379,7 +1379,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: montant des pm oslr cho à la l'ouverture de t
+            decimal: montant des pm oslr cho à la l'ouverture de t
         """
         if t==0:
             return self.pm_cho_clo(0)
@@ -1392,7 +1392,7 @@ class ADECashFLowModel():
     #         t (int): temps t
 
     #     Returns:
-    #         float: montant des pm oslr inc-inv à la cloture de t
+    #         decimal: montant des pm oslr inc-inv à la cloture de t
     #     """
     #     if t<=self.duree_restante(0):
     #         return self.pmxpot2(math.floor(self.age_actuel(t)), self.duree_sinistre(t), 0, 35-self.anciennete_contrat_mois(t), 0, self.crd(t)) * self.vecteur_des_effectifs_at_t(t)[3] * self.couv_inv()
@@ -1405,7 +1405,7 @@ class ADECashFLowModel():
     #         t (int): temps t
 
     #     Returns:
-    #         float: montant des pm oslr inc-inv à l'ouverture de t
+    #         decimal: montant des pm oslr inc-inv à l'ouverture de t
     #     """
     #     if t==0:
     #         return self.pm_inc_inv_clo(0)
@@ -1419,7 +1419,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: retourne le total des provisions à la cloture
+            decimal: retourne le total des provisions à la cloture
         """
         if t<=self.duree_restante(0):
             return self.pm_inc_clo(t) + self.pm_cho_clo(t) + self.prc_inc_clot(t) + self.prc_dc_clot(t)
@@ -1433,7 +1433,7 @@ class ADECashFLowModel():
             t (int): temps
 
         Returns:
-            float: total des provisions à l'ouverture
+            decimal: total des provisions à l'ouverture
         """
         if t<=self.duree_restante(0):
             return self.pm_inc_ouv(t) + self.pm_cho_ouv(t) + self.prc_inc_ouv(t) + self.prc_dc_ouv(t)
@@ -1447,7 +1447,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: retourne la production financière moyenne entre l'ouverture et la cloture
+            decimal: retourne la production financière moyenne entre l'ouverture et la cloture
         """
         if t> self.duree_restante(0):
             return 0
@@ -1481,7 +1481,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: participation au benef assureur
+            decimal: participation au benef assureur
         """
         if t> self.duree_restante(0):
             return 0
@@ -1496,7 +1496,7 @@ class ADECashFLowModel():
             t (int): temps t
 
         Returns:
-            float: participation au benef partenaire 
+            decimal: participation au benef partenaire 
         """
         if t> self.duree_restante(0):
             return 0
@@ -1582,46 +1582,101 @@ class ADECashFLowModel():
         return pd.DataFrame.from_dict(df)
     
     def pv_prc_inc_ouv(self):
+        """present value of PRC incapacite à l'ouverture
+
+        Returns:
+            decimal: present value of PRC incapacite à l'ouverture
+        """
         ultim = self.duree_restante(0)
         return sum([self.prc_inc_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_prc_dc_ouv(self):
+        """present value of prc dc à l'ouverture
+
+        Returns:
+            decimal: present value of prc dc à l'ouverture
+        """
         ultim = self.duree_restante(0)
         return sum([self.prc_dc_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_pm_inc_ouv(self):
+        """present value de la pm incapacite à l'ouverture
+
+        Returns:
+            decimal: present value de la pm incapacite à l'ouverture
+        """
         ultim = self.duree_restante(0)
         return sum([self.pm_inc_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_pm_ch_ouv(self):
+        """present value de la pm chomage à l'ouverture
+
+        Returns:
+            decimal: present value de la pm chomage à l'ouverture
+        """
         ultim = self.duree_restante(0)
         return sum([self.pm_cho_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_total_pm_ouv(self):
+        """present value de la pm total à l'ouverture
+
+        Returns:
+            decimal: present value de la pm total à l'ouverture
+        """
         ultim = self.duree_restante(0)
         return sum([self.total_provisions_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_pm_inc_clo(self):
+        """present value de la pm incapcité à la cloture
+
+        Returns:
+            decimal: present value de la pm incapcité à la cloture
+        """
         ultim = self.duree_restante(0)
         return sum([self.pm_inc_clo(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_pm_ch_clo(self):
+        """present value de la pm chomage à la cloture
+
+        Returns:
+            decimal: present value de la pm chomage à la cloture
+        """
         ultim = self.duree_restante(0)
         return sum([self.pm_cho_clo(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_prc_inc_clo(self):
+        """present value de la prc incapacité à la cloture
+
+        Returns:
+            decimal: present value de la prc incapacité à la cloture
+        """
         ultim = self.duree_restante(0)
         return sum([self.prc_inc_ouv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_prc_dc_clo(self):
+        """present value de la prc dc à la cloture
+
+        Returns:
+            decimal: present value de la prc dc à la cloture
+        """
         ultim = self.duree_restante(0)
         return sum([self.prc_dc_clo(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_total_pm_clot(self):
+        """present value de la pm total à la cloture
+
+        Returns:
+            decimal: present value de la pm total à la cloture
+        """
         ultim = self.duree_restante(0)
         return sum([self.total_provisions_clot(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_prime_valide(self):
+        """present value de la prime valide à la cloture
+
+        Returns:
+            decimal: present value de la prime valide à la cloture
+        """
         ultim = self.duree_restante(0)
         return sum([self.prime_valide(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
@@ -1630,74 +1685,164 @@ class ADECashFLowModel():
         return sum([self.prime_inc(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_prime_ch(self):
+        """present valude la prime versée par les indiv en état de chomage
+
+        Returns:
+            decimal: present valude la prime versée par les indiv en état de chomage
+        """
         ultim = self.duree_restante(0)
         return sum([self.prime_ch(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_total_prime(self):
+        """present value du total des primes
+
+        Returns:
+            decimal: present value du total des primes
+        """
         ultim = self.duree_restante(0)
         return sum([self.total_prime(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_frais_acq(self):
+        """present value des frais d'acquisition
+
+        Returns:
+            decimal: present value des frais d'acquisition
+        """
         ultim = self.duree_restante(0)
         return sum([self.frais_acquisitions(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_frais_admin(self):
+        """present value des frais administrations
+
+        Returns:
+            decimal: present value des frais administrations
+        """
         ultim = self.duree_restante(0)
         return sum([self.frais_administrations(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_frais_commissions(self):
+        """present value des frais de commissions
+
+        Returns:
+            decimal: present value des frais de commissions
+        """
         ultim = self.duree_restante(0)
         return sum([self.frais_commissions(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_total_frais_primes(self):
+        """present value des frais totaux sur primes
+
+        Returns:
+            decimal: present value des frais totaux sur primes
+        """
         ultim = self.duree_restante(0)
         return sum([self.total_frais_primes(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_sinistre_dc(self):
+        """present value des sinistres dc
+
+        Returns:
+            decimal: present value des sinistres dc
+        """
         ultim = self.duree_restante(0)
         return sum([self.sinistre_dc(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_sinistre_inc(self):
+        """present valude des sinistres sur incapacités
+
+        Returns:
+            decimal: present valude des sinistres sur incapacités
+        """
         ultim = self.duree_restante(0)
         return sum([self.sinistre_inc(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_sinistre_ch(self):
+        """present valude des sinistres sur chomages
+
+        Returns:
+            decimal: present valude des sinistres sur chomages
+        """
         ultim = self.duree_restante(0)
         return sum([self.sinistre_ch(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_sinistre_inv(self):
+        """present value des sinistres sur invalidités
+
+        Returns:
+            decimal: present value des sinistres sur invalidités
+        """
         ultim = self.duree_restante(0)
         return sum([self.sinistre_inv(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_sinistre_total(self):
+        """present value des sinistres totaux
+
+        Returns:
+            decimal: present value des sinistres totaux
+        """
         ultim = self.duree_restante(0)
         return sum([self.total_sinistre(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_frais_gest_sin(self):
+        """present value des frais gestion de sinistres
+
+        Returns:
+            decimal: present value des frais gestion de sinistres
+        """
         ultim = self.duree_restante(0)
         return sum([self.frais_gest_sin(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_production_financiere(self):
+        """present valude de la production financiere
+
+        Returns:
+            decimal: present valude de la production financiere
+        """
         ultim = self.duree_restante(0)
         return sum([self.production_financiere(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_resultat_technique(self):
+        """present value du resultat technique
+
+        Returns:
+            decimal: present value du resultat technique
+        """
         ultim = self.duree_restante(0)
         return sum([self.resultat_technique(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_participation_benef_ass(self):
+        """present value de la participation au benef assuré
+
+        Returns:
+            decimal: present value de la participation au benef assuré
+        """
         ultim = self.duree_restante(0)
         return sum([self.participation_benef_ass(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_participation_benef_part(self):
+        """present value de la participation au benef part
+
+        Returns:
+            decimal: present value de la participation au benef part
+        """
         ultim = self.duree_restante(0)
         return sum([self.participation_benef_part(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
     
     def pv_resultat_assureur(self):
+        """present value du resutat assureur
+
+        Returns:
+            decimal: present value du resutat assureur
+        """
         ultim = self.duree_restante(0)
         return sum([self.resultat_assureur(t)*ADECashFLowModel.ForwardRate.fact_actu(t) for t in range(ultim)])
         
     def present_value_future_cash_flow(self):
+        """present value of future cash flows
+
+        Returns:
+            Dataframe: present value of future cash flows
+        """
         df = {'time':0,
               'mp_id':self.mp_id(),
               'last_t':self.duree_restante(0),
@@ -1735,7 +1880,7 @@ class ADECashFLowModel():
 
 
 if __name__=="__main__":
-    #data_files_path ='C:/Users/work/OneDrive/modele_emprunteur/CSV'
+    #Dictionnay containing input files paths
     dataconfig ={'IncidenceData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//INCIDENCE.csv',
             'LapseData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//LAPSE.csv',
             'MaintienChData' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//MAINTIEN_CH.csv',
@@ -1748,17 +1893,18 @@ if __name__=="__main__":
             'PathOutput' : 'C://Users//work//OneDrive//modele_emprunteur//CSV//SORTIES_MODELE//'}
     # Set the model configuration
     ADECashFLowModel.config(dataconfig)
-    ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT.csv', sep=";")
-    df = pd.DataFrame()
-    projection = ADECashFLowModel(ModelPoint.loc[2,:])
-    print(projection.present_value_future_cash_flow())
-    
-    # for i in range(0, ModelPoint.shape[0]):
-    #     print(i)
-    #     projection = ADECashFLowModel(ModelPoint.loc[i,:])
-    #     df = df.append(projection.full_cash_flow_projection())
-    #     print(i)
-    # date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
-    # pth = ADECashFLowModel.ModelConfig['PathOutput']+'run_ae_'+date_time+'.csv'
-    # df.to_csv(pth, sep=',', decimal='.', header=True, index=False)
-    # df.to_csv(dataconfig['PathOutput'], sep=',', decimal='.', header=True, index=False)
+    # Read the Model point file into dataframe
+    ModelPoint = pd.read_csv('C://Users//work//OneDrive//modele_emprunteur//CSV//MODEL_POINT_2.csv', sep=";")
+    # Initialisaiton of the result dataframe
+    run_result = pd.DataFrame()
+    # projection = ADECashFLowModel(ModelPoint.loc[2,:])
+    # print(projection.present_value_future_cash_flow())
+    for i in range(0, ModelPoint.shape[0]):
+        print(i)
+        projection = ADECashFLowModel(ModelPoint.loc[i,:])
+        # run_result = run_result.append(projection.full_cash_flow_projection())
+        run_result = pd.concat([run_result, projection.full_cash_flow_projection()], axis=0, join='outer')
+        print(i)
+    date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
+    path_string = ADECashFLowModel.ModelConfig['PathOutput']+'run_ae_'+date_time+'.csv'
+    run_result.to_csv(path_string, sep=',', decimal='.', header=True, index=False)
