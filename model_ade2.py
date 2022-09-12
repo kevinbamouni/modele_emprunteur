@@ -1867,16 +1867,7 @@ class ADECashFLowModel():
               'pv_participation_benef_ass':self.pv_participation_benef_ass(),
               'pv_participation_benef_part':self.pv_participation_benef_part(),
               'pv_resultat_assureur':self.pv_resultat_assureur()}
-        return pd.DataFrame.from_dict(df, orient='index')
-    
-    def full_cash_flow_projection_to_csv(self):
-        """
-            Run the full_cash_flow_projection() and export the reesult to a csv file with the mp_id as name
-        """
-        df = self.full_cash_flow_projection()
-        date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
-        pth = ADECashFLowModel.ModelConfig['PathOutput']+'run_ae_'+date_time+'.csv'
-        df.to_csv(pth, sep=',', decimal='.', header=True, index=False)
+        return pd.DataFrame.from_dict([df])
 
 
 if __name__=="__main__":
@@ -1903,7 +1894,7 @@ if __name__=="__main__":
         print(i)
         projection = ADECashFLowModel(ModelPoint.loc[i,:])
         # run_result = run_result.append(projection.full_cash_flow_projection())
-        run_result = pd.concat([run_result, projection.full_cash_flow_projection()], axis=0, join='outer')
+        run_result = pd.concat([run_result, projection.present_value_future_cash_flow()], axis=0, join='outer')
         print(i)
     date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
     path_string = ADECashFLowModel.ModelConfig['PathOutput']+'run_ae_'+date_time+'.csv'
